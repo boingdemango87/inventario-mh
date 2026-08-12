@@ -123,25 +123,24 @@ document.getElementById('newUserEmail')?.addEventListener('input', (e)=>{
   document.getElementById('previewEmail').innerText = usuarioAEmail(e.target.value) || "usuario@alcaldiamh.local";
 });
 
-const SUPABASE_URL = 'https://wnspprwtoulfnvwijzdu.supabase.co';
+const SUPABASE_URL = 'https://wnspprwtouvfnvwijzdu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Induc3Bwcnd0b3VsZm52d2lqemR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyMzI5NzYsImV4cCI6MjEwMTgwODk3Nn0.N1uZFne7EJgWdhSAdxrYucGguf26iNQwDYMK7MENm58';
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// --- TIEMPO REAL 100% ---
+// --- TIEMPO REAL FINAL - NOMBRES CORRECTOS ---
 const realtimeChannel = supa
   .channel('inventario-tiempo-real')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'bienes' }, () => {
-    console.log('Cambio en bienes detectado');
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'bienes' }, (payload) => {
+    console.log('CAMBIO EN BIENES:', payload);
     if (typeof cargarInventario === 'function') cargarInventario();
     if (typeof cargarDatos === 'function') cargarDatos();
   })
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'inventario' }, () => {
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'inventarios' }, (payload) => {
+    console.log('CAMBIO EN INVENTARIOS:', payload);
     if (typeof cargarInventario === 'function') cargarInventario();
   })
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, () => {
-    if (typeof cargarInventario === 'function') cargarInventario();
-  })
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'bienes_mh' }, () => {
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, (payload) => {
+    console.log('CAMBIO EN AREAS:', payload);
     if (typeof cargarInventario === 'function') cargarInventario();
   })
   .subscribe((status) => {
