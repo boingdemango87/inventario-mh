@@ -116,6 +116,10 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 <button onclick="cerrarModalReportes()" class="bg-white/10 px-3 py-1 rounded-full">X</button>
 </div>
 <div class="p-6 space-y-4 overflow-auto">
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+<label class="text-xs font-bold text-amber-700">FILTRAR POR DIRECCIÓN:</label>
+<select id="filtroDireccion" onchange="filtrarReportePorDireccion()" class="w-full mt-1 bg-white border-2 border-amber-400 rounded-xl px-3 py-2 font-bold"></select>
+</div>
 <div class="grid grid-cols-3 gap-4 text-center">
 <div class="bg-slate-50 p-4 rounded-xl border"><p class="text-xs text-slate-500">TOTAL ÁREAS</p><p id="repTotalAreas" class="text-2xl font-bold">0</p></div>
 <div class="bg-emerald-50 p-4 rounded-xl border"><p class="text-xs text-emerald-600">ACTIVOS</p><p id="repActivos" class="text-2xl font-bold text-emerald-700">0</p></div>
@@ -331,17 +335,33 @@ document.getElementById('selectArea').addEventListener('change', mostrarResumen)
 
 // Funcion para reportes 
 let chartInstance = null;
+let areasFiltradasReporte = [];
 
 function abrirModalReportes(){
   document.getElementById('modalReportes').classList.remove('hidden');
   document.getElementById('modalReportes').classList.add('flex');
+
+  // Llenar direcciones únicas
+  let dirs = [...new Set(todasLasAreas.map(a=> (a.direccion||'SIN DIRECCION').trim()).filter(d=>d))].sort();
+  document.getElementById('filtroDireccion').innerHTML = `<option value="TODAS">📍 TODAS LAS DIRECCIONES</option>` + dirs.map(d=> `<option value="${d}">${d}</option>`).join('');
+
+  filtrarReportePorDireccion();
+}
+
+function filtrarReportePorDireccion(){
+  let dirSel = document.getElementById('filtroDireccion').value;
+  areasFiltradasReporte = dirSel === 'TODAS'? todasLasAreas : todasLasAreas.filter(a=> (a.direccion||'SIN DIRECCION').trim().toUpperCase() === dirSel.toUpperCase());
   let totalAct=0, totalFal=0;
-  todasLasAreas.forEach(a=>{ totalAct+= a.bienes_activos||0; totalFal+= a.bienes_faltantes||0; });
-  document.getElementById('repTotalAreas').innerText = todasLasAreas.length;
+  
+  areasFiltradasReporte.forEach(a=>{ totalAct+= a.bienes_activos||0; totalFal+= a.bienes_faltantes||0; });
+
+  document.getElementById('repTotalAreas').innerText = areasFiltradasReporte.length;
   document.getElementById('repActivos').innerText = totalAct;
   document.getElementById('repFaltantes').innerText = totalFal;
-  document.getElementById('tablaReporte').innerHTML = todasLasAreas.filter(a=> (a.bienes_faltantes||0) > 0).sort((a,b)=> (b.bienes_faltantes||0)-(a.bienes_faltantes||0)).slice(0,20).map(a=> `<div class="flex justify-between p-2 border-b"><span>${a.id} - ${a.nombre}</span><b class="text-red-600">${a.bienes_faltantes} faltantes</b></div>`).join('');
-   const ctx = document.getElementById('chartPastel').getContext('2d');
+
+  document.getElementById('tablaReporte').innerHTML = areasFiltradasReporte.map(a=> `<div class="flex justify-between p-2 border-b text-sm"><span>${a.id} - ${a.nombre}</span><span><b class="text-emerald-600">${a.bienes_activos||0} act</b> | <b class="text-red-600">${a.bienes_faltantes||0} falt</b> | <b class="text-blue-600">${a.vehiculos||0} veh</b></span></div>`).join('');
+
+  const ctx = document.getElementById('chartPastel').getContext('2d');
   if(chartInstance) chartInstance.destroy();
   chartInstance = new Chart(ctx, {
     type: 'pie',
@@ -349,33 +369,31 @@ function abrirModalReportes(){
       labels: ['ACTIVOS', 'FALTANTES'],
       datasets: [{ data: [totalAct, totalFal], backgroundColor: ['#10b981','#ef4444'], borderWidth: 2, borderColor: '#fff' }]
     },
-    options: { 
-      responsive: true, 
-      maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Distribución Inventario MH' } } 
-    }
-    });
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, title: { display: true, text: dirSel } } }
+  });
 }
 function cerrarModalReportes(){ document.getElementById('modalReportes').classList.add('hidden'); document.getElementById('modalReportes').classList.remove('flex'); }
 
 function exportarExcel(){
-  let csv = "\uFEFFID,Nombre,Anio,Activos,Faltantes,Vehiculos,Actualizado_Por,Actualizado_En,Observacion\n" + todasLasAreas.map(a=> `${a.id},"${(a.nombre||'').replace(/"/g,'""')}",${a.anio||''},${a.bienes_activos||0},${a.bienes_faltantes||0},${a.vehiculos||0},"${a.actualizado_por||''}","${a.actualizado_en ? new Date(a.actualizado_en).toLocaleString() : ''}","${(a.observacion||'').replace(/"/g,'""')}"`).join("\n");
+  let dirSel = document.getElementById('filtroDireccion').value;
+  let csv = "\uFEFFID,Nombre,Activos,Faltantes,Vehiculos\n" + areasFiltradasReporte.map(a=> `${a.id},"${(a.nombre||'').replace(/"/g,'""')}",${a.bienes_activos||0},${a.bienes_faltantes||0},${a.vehiculos||0}`).join("\n");
   let blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   let url = URL.createObjectURL(blob);
-  let a = document.createElement('a'); a.href=url; a.download=`Reporte_MH_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  let a = document.createElement('a'); a.href=url; a.download=`Reporte_${dirSel.replace(/[^a-z0-9]/gi,'_')}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
 }
 
 function exportarPDF(){
+  let dirSel = document.getElementById('filtroDireccion').value;
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('landscape');
-  doc.setFontSize(14); doc.text("Reporte Inventario - Alcaldia MH", 14, 15);
-  doc.setFontSize(9); doc.text(`Fecha: ${new Date().toLocaleString()} - Total Areas: ${todasLasAreas.length}`, 14, 22);
+  const doc = new jsPDF();
+  doc.setFontSize(12); doc.text(`Reporte por Direccion: ${dirSel} - Alcaldia MH`, 14, 15);
+  doc.setFontSize(9); doc.text(`Fecha: ${new Date().toLocaleString()} - Total Areas: ${areasFiltradasReporte.length}`, 14, 22);
   const canvas = document.getElementById('chartPastel');
   const imgData = canvas.toDataURL('image/png');
-  doc.addImage(imgData, 'PNG', 80, 28, 110, 70);
-  const rows = todasLasAreas.map(a=> [a.id, a.nombre.substring(0,30), a.bienes_activos||0, a.bienes_faltantes||0, a.vehiculos||0, a.actualizado_por||'-', a.actualizado_en ? new Date(a.actualizado_en).toLocaleDateString() : '-']);
-  doc.autoTable({ startY: 105, head: [['ID','Area','Activos','Faltantes','Veh.','Actualizó','Fecha']], body: rows, styles:{fontSize:7}, headStyles:{fillColor:[15,23,42]} });
-  doc.save(`Reporte_MH_${new Date().toISOString().slice(0,10)}.pdf`);
+  doc.addImage(imgData, 'PNG', 50, 28, 90, 60);
+  const rows = areasFiltradasReporte.map(a=> [a.id, a.nombre.substring(0,40), a.bienes_activos||0, a.bienes_faltantes||0, a.vehiculos||0]);
+  doc.autoTable({ startY: 95, head: [['ID','Area','Activos','Faltantes','Vehiculos']], body: rows, styles:{fontSize:7}, headStyles:{fillColor:[15,23,42]} });
+  doc.save(`Reporte_${dirSel.replace(/[^a-z0-9]/gi,'_')}.pdf`);
 }
 
 </script>
