@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CONTROL DE INVENTARIO - Alcaldía MH</title>
+<title>CONTROL DE INVENTARIO - SISTEMA DE GESTION</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
@@ -50,17 +50,16 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
     <div class="card">
       <div style="display:flex; justify-content:center; gap:10px; margin-bottom:18px; font-size:20px; color:white"><i class="fa-solid fa-table-columns"></i><i class="fa-solid fa-cube"></i></div>
       <h2>CONTROL DE INVENTARIO</h2>
-      <p class="sub">Alcaldía Miguel Hidalgo</p>
+      <p class="sub">SISTEMA DE GESTION</p>
       <div class="input-group"><i class="fa-regular fa-user icon-left"></i><input id="emailLogin" type="text" placeholder="Usuario (ej: juan.perez)" class="input-v3"></div>
       <div class="input-group"><i class="fa-solid fa-lock icon-left" style="font-size:14px"></i><input id="passLogin" type="password" placeholder="Contraseña" class="input-v3"><i id="toggleEye" class="fa-regular fa-eye-slash icon-right" onclick="togglePass()"></i></div>
       <button onclick="login()" class="btn-v3">Entrar →</button>
       <p id="loginError" style="color:#f87171; font-size:13px; text-align:center; margin-top:12px; display:none"></p>
       <div style="text-align:center; margin-top:16px; color:#5a5f78; font-size:12px">Usa tu usuario asignado<br>Ej: <b style="color:#8b91a7">juan.perez</b></div>
-      <div style="text-align:center; margin-top:22px; color:#5a5f78; font-size:11px">v2.1.0 • Alcaldía Miguel Hidalgo • 2024</div>
+      <div style="text-align:center; margin-top:22px; color:#5a5f78; font-size:11px">v2.1.0 • SISTEMA DE GESTION • 2026</div>
     </div>
   </div>
 </div>
-<!-- El resto de tu app sigue igual, no lo toqué -->
  
 <div id="app" class="hidden">
 <header class="bg-white border-b-4 border-amber-500 shadow-sm"><div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white"><i class="fa-solid fa-building-columns"></i></div><div><h1 class="font-bold text-slate-800 leading-none">CONTROL DE INVENTARIO</h1><p class="text-xs text-slate-500">Alcaldía MH</p></div></div><div class="flex items-center gap-3"><div id="status" class="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full text-sm font-semibold border">0 áreas</div><div class="text-right hidden md:block"><p id="userEmail" class="text-xs font-bold text-slate-700"></p><p id="userRoleBadge" class="text-[10px] px-2 py-0.5 rounded-full font-bold"></p></div><button id="btnUsuarios" onclick="abrirModalUsuarios()" class="w-9 h-9 bg-slate-100 rounded-full"><i class="fa-solid fa-users text-sm"></i></button><button onclick="logout()" class="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-sm font-bold border border-red-200">Salir</button></div></div></header>
@@ -137,25 +136,37 @@ const SUPABASE_URL = 'https://wnspprwtoulfnvwijzdu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Induc3Bwcnd0b3VsZm52d2lqemR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyMzI5NzYsImV4cCI6MjEwMTgwODk3Nn0.N1uZFne7EJgWdhSAdxrYucGguf26iNQwDYMK7MENm58';
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// --- TIEMPO REAL FINAL - NOMBRES CORRECTOS ---
-const realtimeChannel = supa
-  .channel('inventario-tiempo-real')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'bienes' }, (payload) => {
-    console.log('CAMBIO EN BIENES:', payload);
-    if (typeof cargarInventario === 'function') cargarInventario();
-    if (typeof cargarDatos === 'function') cargarDatos();
-  })
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'inventarios' }, (payload) => {
-    console.log('CAMBIO EN INVENTARIOS:', payload);
-    if (typeof cargarInventario === 'function') cargarInventario();
-  })
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, (payload) => {
-    console.log('CAMBIO EN AREAS:', payload);
-    if (typeof cargarInventario === 'function') cargarInventario();
-  })
-  .subscribe((status) => {
-    console.log('Tiempo real:', status);
-  });
+// --- TIEMPO REAL FIX - ANTI CONGELAMIENTO ---
+let realtimeChannel = null;
+
+function suscribirRealtime() {
+  if (realtimeChannel) {
+    supa.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+  
+  realtimeChannel = supa
+    .channel('inventario-mh-' + Date.now())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, () => {
+      console.log('CAMBIO EN AREAS - recargando');
+      cargarAreas();
+    })
+    .subscribe((status) => {
+      console.log('Tiempo real:', status);
+    });
+}
+
+// Inicializa una sola vez
+suscribirRealtime();
+
+// FIX: cuando sales de la pestaña y regresas, no se congela
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    console.log('Regresaste - reconectando');
+    suscribirRealtime();
+    cargarAreas();
+  }
+});
 
 let todasLasAreas=[], areaSeleccionadaCaptura=null, miRol='capturista';
 
