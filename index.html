@@ -285,13 +285,10 @@ async function cargarAreas(){
 
 function mostrarResumen(){ 
   const selectVal = document.getElementById('selectArea').value;
-  // --- FIX: Guardar área seleccionada ---
-  if(selectVal){
-    localStorage.setItem("mh_area_id_v2", String(selectVal));
-  }
+  if(selectVal){ localStorage.setItem("mh_area_id_v2", String(selectVal)); }
   const a=todasLasAreas.find(x=>String(x.id)===String(selectVal)); 
   if(!a) return; 
-  document.getElementById('resumenArea').innerHTML=`<div class="text-center mb-4"><p class="font-bold">${a.id} - ${a.nombre}</p><p class="text-sm text-slate-500">${a.direccion||''}</p></div><div class="grid grid-cols-4 gap-3"><div class="bg-slate-50 border rounded-xl p-4 text-center"><p class="text-xs">AÑO</p><p class="text-xl font-bold">${a.anio||'-'}</p></div><div class="bg-emerald-50 border rounded-xl p-4 text-center"><p class="text-xs text-emerald-600">ACTIVOS</p><p class="text-xl font-bold text-emerald-700">${a.bienes_activos??0}</p></div><div class="bg-red-50 border rounded-xl p-4 text-center"><p class="text-xs text-red-600">FALTANTES</p><p class="text-xl font-bold text-red-700">${a.bienes_faltantes??0}</p></div><div class="bg-blue-50 border rounded-xl p-4 text-center"><p class="text-xs">VEHÍCULOS</p><p class="text-xl font-bold">${a.vehiculos??0}</p></div></div><div class="mt-4 bg-slate-50 rounded-xl p-3 text-center text-sm italic border">${a.observacion||'SIN OBSERVACIONES'}</div>`; 
+  document.getElementById('resumenArea').innerHTML=`<div class="text-center mb-4"><p class="font-bold">${a.id} - ${a.nombre}</p><p class="text-sm text-slate-500">${a.direccion||''}</p></div><div class="grid grid-cols-4 gap-3"><div class="bg-slate-50 border rounded-xl p-4 text-center"><p class="text-xs">AÑO</p><p class="text-xl font-bold">${a.anio||'-'}</p></div><div class="bg-emerald-50 border rounded-xl p-4 text-center"><p class="text-xs text-emerald-600">ACTIVOS</p><p class="text-xl font-bold text-emerald-700">${a.bienes_activos??0}</p></div><div class="bg-red-50 border rounded-xl p-4 text-center"><p class="text-xs text-red-600">FALTANTES</p><p class="text-xl font-bold text-red-700">${a.bienes_faltantes??0}</p></div><div class="bg-blue-50 border rounded-xl p-4 text-center"><p class="text-xs">VEHÍCULOS</p><p class="text-xl font-bold">${a.vehiculos??0}</p></div></div><div class="mt-4 bg-slate-50 rounded-xl p-3 text-center text-sm italic border">${a.observacion||'SIN OBSERVACIONES'}</div><div class="mt-3 text-[11px] text-slate-500 text-center">${a.actualizado_por ? `✏️ Actualizado por <b>${a.actualizado_por}</b> el ${new Date(a.actualizado_en).toLocaleString()}` : 'Sin actualización registrada'}</div>`; 
 }
 function abrirModalArea(){ document.getElementById('modalArea').classList.remove('hidden'); document.getElementById('modalArea').classList.add('flex'); } function cerrarModalArea(){ document.getElementById('modalArea').classList.add('hidden'); document.getElementById('modalArea').classList.remove('flex'); }
 function abrirModalGestion(){ if(miRol!=='admin') return alert('Solo admin'); document.getElementById('modalGestion').classList.remove('hidden'); document.getElementById('modalGestion').classList.add('flex'); } function cerrarModalGestion(){ document.getElementById('modalGestion').classList.add('hidden'); document.getElementById('modalGestion').classList.remove('flex'); }
@@ -300,11 +297,36 @@ function cargarTablaGestion(data){ document.getElementById('tablaGestion').inner
 function cargarTablaCaptura(data){ document.getElementById('tablaCaptura').innerHTML=data.map(a=>`<tr class="border-b hover:bg-emerald-50 cursor-pointer" onclick="seleccionarAreaCaptura('${a.id}')"><td class="p-3 font-bold">${a.id}</td><td class="p-3">${a.nombre}</td><td class="p-3 text-sm text-slate-500">${a.direccion||''}</td></tr>`).join(''); }
 function filtrarGestion(){ const q=document.getElementById('buscadorGestion').value.toLowerCase(); cargarTablaGestion(todasLasAreas.filter(a=>String(a.id).toLowerCase().includes(q)||String(a.nombre).toLowerCase().includes(q))); }
 function filtrarCaptura(){ const q=document.getElementById('buscadorCaptura').value.toLowerCase(); cargarTablaCaptura(todasLasAreas.filter(a=>String(a.id).toLowerCase().includes(q)||String(a.nombre).toLowerCase().includes(q))); }
-function seleccionarAreaCaptura(id){ let area=todasLasAreas.find(a=>String(a.id)===String(id)); areaSeleccionadaCaptura=area; document.getElementById('tituloAreaSeleccionada').innerText=`✅ ${area.id} - ${area.nombre}`; document.getElementById('panelResultados').classList.remove('hidden'); document.getElementById('capAnio').value=area.anio||2026; document.getElementById('capActivos').value=area.bienes_activos??0; document.getElementById('capFaltantes').value=area.bienes_faltantes??0; document.getElementById('capVehiculos').value=area.vehiculos??0; document.getElementById('capturaNota').value=area.observacion||''; }
+function seleccionarAreaCaptura(id){
+  let area=todasLasAreas.find(a=>String(a.id)===String(id));
+  areaSeleccionadaCaptura=area;
+  let infoExtra = area.actualizado_por ? `<div class="text-[11px] text-slate-500 mt-2 text-center">Última actualización: <b>${area.actualizado_por}</b> - ${new Date(area.actualizado_en).toLocaleString()}</div>` : '';
+  document.getElementById('tituloAreaSeleccionada').innerHTML=`✅ ${area.id} - ${area.nombre} ${infoExtra}`;
+  document.getElementById('panelResultados').classList.remove('hidden');
+  document.getElementById('capAnio').value=area.anio||2026;
+  document.getElementById('capActivos').value=area.bienes_activos??0;
+  document.getElementById('capFaltantes').value=area.bienes_faltantes??0;
+  document.getElementById('capVehiculos').value=area.vehiculos??0;
+  document.getElementById('capturaNota').value=area.observacion||'';
+}
 async function guardarNuevaArea(){ const id=document.getElementById('nuevaClave').value.trim(), nombre=document.getElementById('nuevoNombre').value.trim().toUpperCase(), direccion=document.getElementById('nuevaDireccion').value.trim().toUpperCase(); const { error }=await supa.from('areas').insert([{id,nombre,direccion}]); if(error) alert(error.message); else { cerrarModalArea(); cargarAreas(); } }
 async function guardarEdicionArea(idOriginal){ const nuevoId=document.getElementById(`edit_id_${idOriginal}`).value.trim(), nuevoNombre=document.getElementById(`edit_nom_${idOriginal}`).value.trim().toUpperCase(); const { error }=await supa.from('areas').update({id:nuevoId,nombre:nuevoNombre}).eq('id',idOriginal); if(error) alert(error.message); else cargarAreas(); }
 async function borrarArea(id){ if(!confirm('¿Borrar?')) return; await supa.from('areas').delete().eq('id',id); cargarAreas(); }
-async function guardarCapturaActualizada(){ const datos={anio:parseInt(document.getElementById('capAnio').value), bienes_activos:parseInt(document.getElementById('capActivos').value), bienes_faltantes:parseInt(document.getElementById('capFaltantes').value), vehiculos:parseInt(document.getElementById('capVehiculos').value), observacion:document.getElementById('capturaNota').value}; const { error }=await supa.from('areas').update(datos).eq('id',areaSeleccionadaCaptura.id); if(error) alert(error.message); else { cerrarModalCaptura(); cargarAreas(); } }
+async function guardarCapturaActualizada(){
+  const { data: { user } } = await supa.auth.getUser();
+  const datos={
+    anio:parseInt(document.getElementById('capAnio').value),
+    bienes_activos:parseInt(document.getElementById('capActivos').value),
+    bienes_faltantes:parseInt(document.getElementById('capFaltantes').value),
+    vehiculos:parseInt(document.getElementById('capVehiculos').value),
+    observacion:document.getElementById('capturaNota').value,
+    actualizado_por: emailAUsuario(user.email),
+    actualizado_en: new Date().toISOString()
+  };
+  const { error }=await supa.from('areas').update(datos).eq('id',areaSeleccionadaCaptura.id);
+  if(error) alert(error.message);
+  else { alert(`✅ Actualizado por ${datos.actualizado_por}`); cerrarModalCaptura(); cargarAreas(); }
+}
 document.getElementById('selectArea').addEventListener('change', mostrarResumen);
 
 // Funcion para reportes 
@@ -337,7 +359,7 @@ function abrirModalReportes(){
 function cerrarModalReportes(){ document.getElementById('modalReportes').classList.add('hidden'); document.getElementById('modalReportes').classList.remove('flex'); }
 
 function exportarExcel(){
-  let csv = "\uFEFFID,Nombre,Anio,Activos,Faltantes,Vehiculos,Observacion\n" + todasLasAreas.map(a=> `${a.id},"${(a.nombre||'').replace(/"/g,'""')}",${a.anio||''},${a.bienes_activos||0},${a.bienes_faltantes||0},${a.vehiculos||0},"${(a.observacion||'').replace(/"/g,'""')}"`).join("\n");
+  let csv = "\uFEFFID,Nombre,Anio,Activos,Faltantes,Vehiculos,Actualizado_Por,Actualizado_En,Observacion\n" + todasLasAreas.map(a=> `${a.id},"${(a.nombre||'').replace(/"/g,'""')}",${a.anio||''},${a.bienes_activos||0},${a.bienes_faltantes||0},${a.vehiculos||0},"${a.actualizado_por||''}","${a.actualizado_en ? new Date(a.actualizado_en).toLocaleString() : ''}","${(a.observacion||'').replace(/"/g,'""')}"`).join("\n");
   let blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   let url = URL.createObjectURL(blob);
   let a = document.createElement('a'); a.href=url; a.download=`Reporte_MH_${new Date().toISOString().slice(0,10)}.csv`; a.click();
@@ -345,14 +367,14 @@ function exportarExcel(){
 
 function exportarPDF(){
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  doc.setFontSize(16); doc.text("Reporte Inventario - Alcaldia MH", 14, 15);
-  doc.setFontSize(10); doc.text(`Fecha: ${new Date().toLocaleString()} - Total Areas: ${todasLasAreas.length}`, 14, 22);
+  const doc = new jsPDF('landscape');
+  doc.setFontSize(14); doc.text("Reporte Inventario - Alcaldia MH", 14, 15);
+  doc.setFontSize(9); doc.text(`Fecha: ${new Date().toLocaleString()} - Total Areas: ${todasLasAreas.length}`, 14, 22);
   const canvas = document.getElementById('chartPastel');
   const imgData = canvas.toDataURL('image/png');
-  doc.addImage(imgData, 'PNG', 50, 28, 110, 70);
-  const rows = todasLasAreas.map(a=> [a.id, a.nombre.substring(0,35), a.bienes_activos||0, a.bienes_faltantes||0, a.vehiculos||0]);
-  doc.autoTable({ startY: 105, head: [['ID','Area','Activos','Faltantes','Veh.']], body: rows, styles:{fontSize:7}, headStyles:{fillColor:[15,23,42]} });
+  doc.addImage(imgData, 'PNG', 80, 28, 110, 70);
+  const rows = todasLasAreas.map(a=> [a.id, a.nombre.substring(0,30), a.bienes_activos||0, a.bienes_faltantes||0, a.vehiculos||0, a.actualizado_por||'-', a.actualizado_en ? new Date(a.actualizado_en).toLocaleDateString() : '-']);
+  doc.autoTable({ startY: 105, head: [['ID','Area','Activos','Faltantes','Veh.','Actualizó','Fecha']], body: rows, styles:{fontSize:7}, headStyles:{fillColor:[15,23,42]} });
   doc.save(`Reporte_MH_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
