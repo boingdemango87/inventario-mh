@@ -133,8 +133,7 @@ function togglePass(){ const p=document.getElementById('passLogin'); const eye=d
 document.getElementById('newUserEmail')?.addEventListener('input', (e)=>{
   document.getElementById('previewEmail').innerText = usuarioAEmail(e.target.value) || "usuario@alcaldiamh.local";
 });
-
-const SUPABASE_URL = 'https://wnspprwtouvfnvwijzdu.supabase.co';
+const SUPABASE_URL = 'https://wnspprwtoulfnvwijzdu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Induc3Bwcnd0b3VsZm52d2lqemR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyMzI5NzYsImV4cCI6MjEwMTgwODk3Nn0.N1uZFne7EJgWdhSAdxrYucGguf26iNQwDYMK7MENm58';
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
