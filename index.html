@@ -121,12 +121,14 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 <div class="bg-emerald-50 p-4 rounded-xl border"><p class="text-xs text-emerald-600">ACTIVOS</p><p id="repActivos" class="text-2xl font-bold text-emerald-700">0</p></div>
 <div class="bg-red-50 p-4 rounded-xl border"><p class="text-xs text-red-600">FALTANTES</p><p id="repFaltantes" class="text-2xl font-bold text-red-700">0</p></div>
 </div>
-<div class="flex justify-center bg-slate-50 rounded-xl p-4 border">
-<canvas id="chartPastel" width="300" height="200" style="max-width:320px;"></canvas>
+<div class="flex justify-center bg-slate-50 rounded-xl p-2 border">
+  <div style="width:320px; height:260px; position:relative;">
+    <canvas id="chartPastel"></canvas>
+  </div>
 </div>
 <div class="flex gap-2">
-<button onclick="exportarExcel()" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl">📗 Exportar Excel</button>
-<button onclick="exportarPDF()" class="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl">📕 Exportar PDF con Gráfica</button>
+  <button onclick="exportarExcel()" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl">📗 Exportar Excel</button>
+  <button onclick="exportarPDF()" class="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl">📕 Exportar PDF con Gráfica</button>
 </div>
 <div id="tablaReporte" class="mt-4"></div>
 </div>
@@ -317,9 +319,20 @@ function abrirModalReportes(){
   document.getElementById('repActivos').innerText = totalAct;
   document.getElementById('repFaltantes').innerText = totalFal;
   document.getElementById('tablaReporte').innerHTML = todasLasAreas.filter(a=> (a.bienes_faltantes||0) > 0).sort((a,b)=> (b.bienes_faltantes||0)-(a.bienes_faltantes||0)).slice(0,20).map(a=> `<div class="flex justify-between p-2 border-b"><span>${a.id} - ${a.nombre}</span><b class="text-red-600">${a.bienes_faltantes} faltantes</b></div>`).join('');
-  const ctx = document.getElementById('chartPastel').getContext('2d');
+   const ctx = document.getElementById('chartPastel').getContext('2d');
   if(chartInstance) chartInstance.destroy();
-  chartInstance = new Chart(ctx, { type: 'pie', data: { labels: ['ACTIVOS','FALTANTES'], datasets: [{ data: [totalAct, totalFal], backgroundColor: ['#10b981','#ef4444'], borderWidth: 2, borderColor: '#fff' }] }, options: { responsive: true, plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Distribución Inventario MH' } } } });
+  chartInstance = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['ACTIVOS', 'FALTANTES'],
+      datasets: [{ data: [totalAct, totalFal], backgroundColor: ['#10b981','#ef4444'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Distribución Inventario MH' } } 
+    }
+    });
 }
 function cerrarModalReportes(){ document.getElementById('modalReportes').classList.add('hidden'); document.getElementById('modalReportes').classList.remove('flex'); }
 
