@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -120,9 +121,12 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 <div class="bg-emerald-50 p-4 rounded-xl border"><p class="text-xs text-emerald-600">ACTIVOS</p><p id="repActivos" class="text-2xl font-bold text-emerald-700">0</p></div>
 <div class="bg-red-50 p-4 rounded-xl border"><p class="text-xs text-red-600">FALTANTES</p><p id="repFaltantes" class="text-2xl font-bold text-red-700">0</p></div>
 </div>
+<div class="flex justify-center bg-slate-50 rounded-xl p-4 border">
+<canvas id="chartPastel" width="300" height="200" style="max-width:320px;"></canvas>
+</div>
 <div class="flex gap-2">
 <button onclick="exportarExcel()" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl">📗 Exportar Excel</button>
-<button onclick="exportarPDF()" class="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl">📕 Exportar PDF</button>
+<button onclick="exportarPDF()" class="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl">📕 Exportar PDF con Gráfica</button>
 </div>
 <div id="tablaReporte" class="mt-4"></div>
 </div>
@@ -302,6 +306,8 @@ async function guardarCapturaActualizada(){ const datos={anio:parseInt(document.
 document.getElementById('selectArea').addEventListener('change', mostrarResumen);
 
 // Funcion para reportes 
+let chartInstance = null;
+
 function abrirModalReportes(){
   document.getElementById('modalReportes').classList.remove('hidden');
   document.getElementById('modalReportes').classList.add('flex');
@@ -310,13 +316,13 @@ function abrirModalReportes(){
   document.getElementById('repTotalAreas').innerText = todasLasAreas.length;
   document.getElementById('repActivos').innerText = totalAct;
   document.getElementById('repFaltantes').innerText = totalFal;
-  document.getElementById('tablaReporte').innerHTML = todasLasAreas
-   .filter(a=> (a.bienes_faltantes||0) > 0)
-   .sort((a,b)=> (b.bienes_faltantes||0)-(a.bienes_faltantes||0))
-   .slice(0,20)
-   .map(a=> `<div class="flex justify-between p-2 border-b"><span>${a.id} - ${a.nombre}</span><b class="text-red-600">${a.bienes_faltantes} faltantes</b></div>`).join('');
+  document.getElementById('tablaReporte').innerHTML = todasLasAreas.filter(a=> (a.bienes_faltantes||0) > 0).sort((a,b)=> (b.bienes_faltantes||0)-(a.bienes_faltantes||0)).slice(0,20).map(a=> `<div class="flex justify-between p-2 border-b"><span>${a.id} - ${a.nombre}</span><b class="text-red-600">${a.bienes_faltantes} faltantes</b></div>`).join('');
+  const ctx = document.getElementById('chartPastel').getContext('2d');
+  if(chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, { type: 'pie', data: { labels: ['ACTIVOS','FALTANTES'], datasets: [{ data: [totalAct, totalFal], backgroundColor: ['#10b981','#ef4444'], borderWidth: 2, borderColor: '#fff' }] }, options: { responsive: true, plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Distribución Inventario MH' } } } });
 }
-function cerrarModalReportes(){ document.getElementById('modalReportes').classList.add('hidden'); }
+function cerrarModalReportes(){ document.getElementById('modalReportes').classList.add('hidden'); document.getElementById('modalReportes').classList.remove('flex'); }
+
 function exportarExcel(){
   let csv = "\uFEFFID,Nombre,Anio,Activos,Faltantes,Vehiculos,Observacion\n" + todasLasAreas.map(a=> `${a.id},"${(a.nombre||'').replace(/"/g,'""')}",${a.anio||''},${a.bienes_activos||0},${a.bienes_faltantes||0},${a.vehiculos||0},"${(a.observacion||'').replace(/"/g,'""')}"`).join("\n");
   let blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
@@ -329,8 +335,11 @@ function exportarPDF(){
   const doc = new jsPDF();
   doc.setFontSize(16); doc.text("Reporte Inventario - Alcaldia MH", 14, 15);
   doc.setFontSize(10); doc.text(`Fecha: ${new Date().toLocaleString()} - Total Areas: ${todasLasAreas.length}`, 14, 22);
-  const rows = todasLasAreas.map(a=> [a.id, a.nombre, a.bienes_activos||0, a.bienes_faltantes||0, a.vehiculos||0]);
-  doc.autoTable({ startY: 28, head: [['ID','Area','Activos','Faltantes','Vehiculos']], body: rows, styles:{fontSize:8}, headStyles:{fillColor:[15,23,42]} });
+  const canvas = document.getElementById('chartPastel');
+  const imgData = canvas.toDataURL('image/png');
+  doc.addImage(imgData, 'PNG', 50, 28, 110, 70);
+  const rows = todasLasAreas.map(a=> [a.id, a.nombre.substring(0,35), a.bienes_activos||0, a.bienes_faltantes||0, a.vehiculos||0]);
+  doc.autoTable({ startY: 105, head: [['ID','Area','Activos','Faltantes','Veh.']], body: rows, styles:{fontSize:7}, headStyles:{fillColor:[15,23,42]} });
   doc.save(`Reporte_MH_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
