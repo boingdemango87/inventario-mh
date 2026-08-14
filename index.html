@@ -5,6 +5,8 @@
 <title>CONTROL DE INVENTARIO - SISTEMA DE GESTION</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -316,12 +318,21 @@ function abrirModalReportes(){
 }
 function cerrarModalReportes(){ document.getElementById('modalReportes').classList.add('hidden'); }
 function exportarExcel(){
-  let csv = "ID,Nombre,Activos,Faltantes,Vehiculos,Observacion\n" + todasLasAreas.map(a=> `${a.id},"${a.nombre}",${a.bienes_activos||0},${a.bienes_faltantes||0},${a.vehiculos||0},"${(a.observacion||'').replace(/"/g,'""')}"`).join("\n");
-  let blob = new Blob([csv], {type:'text/csv'});
+  let csv = "\uFEFFID,Nombre,Anio,Activos,Faltantes,Vehiculos,Observacion\n" + todasLasAreas.map(a=> `${a.id},"${(a.nombre||'').replace(/"/g,'""')}",${a.anio||''},${a.bienes_activos||0},${a.bienes_faltantes||0},${a.vehiculos||0},"${(a.observacion||'').replace(/"/g,'""')}"`).join("\n");
+  let blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   let url = URL.createObjectURL(blob);
-  let a = document.createElement('a'); a.href=url; a.download='reporte_MH.csv'; a.click();
+  let a = document.createElement('a'); a.href=url; a.download=`Reporte_MH_${new Date().toISOString().slice(0,10)}.csv`; a.click();
 }
-function exportarPDF(){ window.print(); }
+
+function exportarPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16); doc.text("Reporte Inventario - Alcaldia MH", 14, 15);
+  doc.setFontSize(10); doc.text(`Fecha: ${new Date().toLocaleString()} - Total Areas: ${todasLasAreas.length}`, 14, 22);
+  const rows = todasLasAreas.map(a=> [a.id, a.nombre, a.bienes_activos||0, a.bienes_faltantes||0, a.vehiculos||0]);
+  doc.autoTable({ startY: 28, head: [['ID','Area','Activos','Faltantes','Vehiculos']], body: rows, styles:{fontSize:8}, headStyles:{fillColor:[15,23,42]} });
+  doc.save(`Reporte_MH_${new Date().toISOString().slice(0,10)}.pdf`);
+}
 
 </script>
 </body>
