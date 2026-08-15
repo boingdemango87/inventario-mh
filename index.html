@@ -32,8 +32,6 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 #app{position:relative; width:100%; min-height:100vh; background:#f1f5f9; display:block; color:#1e293b; z-index:1}
 #app.hidden{display:none!important}
 #loginScreen.hidden{display:none!important}
-#selectArea{width:100%; max-width:100%; text-overflow:ellipsis; font-size:14px}
-#selectArea option{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:90vw; font-size:14px}
 @media(max-width:1000px){
   #loginScreen{flex-direction:column; overflow-y:auto; height:100dvh; min-height:100dvh; -webkit-overflow-scrolling:touch}
   .left-panel{flex:none; width:100%; height:38vh; min-height:300px; max-height:400px}
@@ -82,15 +80,25 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 </div>
 </aside>
 <main class="col-span-12 lg:col-span-9 space-y-5">
-<div class="bg-white rounded-2xl p-5 border shadow-sm overflow-hidden">
-  <label class="text-xs font-bold text-amber-600 uppercase mb-2 block">Área Seleccionada</label>
+<div class="bg-white rounded-2xl p-5 border shadow-sm overflow-visible">
+  <label class="text-xs font-bold text-amber-600 uppercase mb-2 block">ÁREA SELECCIONADA</label>
   <input id="buscadorSelect" oninput="filtrarSelectPrincipal()" placeholder="🔍 Escribe para buscar: ej. ALCALDE, 1000, TESORERIA..." class="w-full mb-3 bg-slate-50 border border-amber-300 rounded-xl px-4 py-3 font-medium outline-none focus:border-amber-500 text-sm">
-  <select id="selectArea" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 font-medium truncate text-sm"></select>
+
+  <div class="relative">
+    <button id="btnSelectArea" onclick="toggleDropdown()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 font-medium text-sm text-left flex justify-between items-center truncate">
+      <span id="textoAreaSeleccionada" class="truncate">Selecciona un área</span>
+      <i class="fa-solid fa-chevron-down text-xs ml-2"></i>
+    </button>
+    <div id="dropdownCustom" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-[300px] overflow-auto z-50"></div>
+  </div>
+
   <p id="contadorAreas" class="text-[11px] text-slate-400 mt-2 text-right">480 áreas</p>
 </div>
 <div class="bg-white rounded-2xl p-6 border shadow-sm"><h3 class="font-bold text-slate-700 text-center mb-5">Resumen del Área</h3><div id="resumenArea"><p class="text-center text-slate-400 py-10">Selecciona un área</p></div></div></main>
 </div>
 </div>
+<select id="selectArea" class="hidden"></select>
+
 
 <!-- MODAL CREAR USUARIO - AHORA SOLO USUARIO -->
 <div id="modalUsuarios" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 overflow-y-auto">
@@ -196,39 +204,16 @@ const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // --- TIEMPO REAL FIX - ANTI CONGELAMIENTO ---
 let realtimeChannel = null;
-
 function suscribirRealtime() {
-  if (realtimeChannel) {
-    supa.removeChannel(realtimeChannel);
-    realtimeChannel = null;
-  }
-  
-  realtimeChannel = supa
-    .channel('inventario-mh-' + Date.now())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, () => {
-      console.log('CAMBIO EN AREAS - recargando');
-      cargarAreas();
-    })
-    .subscribe((status) => {
-      console.log('Tiempo real:', status);
-    });
+  if (realtimeChannel) { supa.removeChannel(realtimeChannel); realtimeChannel = null; }
+  realtimeChannel = supa.channel('inventario-mh-' + Date.now()).on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, () => { cargarAreas(); }).subscribe();
 }
-
-// Inicializa una sola vez
 suscribirRealtime();
-
-// FIX: cuando sales de la pestaña y regresas, no se congela
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
-    console.log('Regresaste - reconectando');
-    suscribirRealtime();
-    cargarAreas();
-  }
-});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { suscribirRealtime(); cargarAreas(); } });
 
 let todasLasAreas=[], areaSeleccionadaCaptura=null, miRol='capturista';
 
-async function checkSession(){
+async function checkSession(){ /* tu misma función */
   const { data:{session} } = await supa.auth.getSession();
   if(session){
     const { data: perfil } = await supa.from('profiles').select('role').eq('id', session.user.id).single();
@@ -237,79 +222,79 @@ async function checkSession(){
     document.getElementById('app').classList.remove('hidden');
     document.body.style.overflow='auto';
     document.getElementById('userEmail').innerText = emailAUsuario(session.user.email);
-    const badge=document.getElementById('userRoleBadge');
-    const aviso=document.getElementById('avisoRol');
+    const badge=document.getElementById('userRoleBadge'); const aviso=document.getElementById('avisoRol');
     if(miRol==='admin'){ badge.innerText='👑 ADMIN'; badge.className='text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700'; aviso.classList.add('hidden'); }
     else { badge.innerText='👷 CAPTURISTA'; badge.className='text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-700'; document.getElementById('btnNuevaArea').classList.add('hidden'); document.getElementById('btnGestion').classList.add('hidden'); document.getElementById('btnUsuarios').classList.add('hidden'); aviso.innerText='🔒 Modo CAPTURISTA'; aviso.className='mt-6 p-3 rounded-xl text-xs font-bold text-center bg-blue-50 text-blue-700 border block'; }
     cargarAreas();
   } else {
-    document.getElementById('loginScreen').classList.remove('hidden');
-    document.getElementById('app').classList.add('hidden');
-    document.body.style.overflow='hidden';
+    document.getElementById('loginScreen').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); document.body.style.overflow='hidden';
   }
 }
-
 async function login(){
-  const rawUser=document.getElementById('emailLogin').value.trim();
-  const pass=document.getElementById('passLogin').value;
-  const errEl=document.getElementById('loginError');
+  const rawUser=document.getElementById('emailLogin').value.trim(); const pass=document.getElementById('passLogin').value; const errEl=document.getElementById('loginError');
   if(!rawUser||!pass){ errEl.innerText='Llena usuario y contraseña'; errEl.style.display='block'; return; }
-  const email = usuarioAEmail(rawUser);
-  const { error }=await supa.auth.signInWithPassword({email,password:pass});
-  if(error){ errEl.innerText="Usuario o contraseña incorrectos"; errEl.style.display='block'; }
-  else { checkSession(); }
+  const email = usuarioAEmail(rawUser); const { error }=await supa.auth.signInWithPassword({email,password:pass});
+  if(error){ errEl.innerText="Usuario o contraseña incorrectos"; errEl.style.display='block'; } else { checkSession(); }
 }
-
 async function logout(){ await supa.auth.signOut(); location.reload(); }
-
 async function crearUsuario(){
-  const rawUser=document.getElementById('newUserEmail').value.trim();
-  const pass=document.getElementById('newUserPass').value.trim();
-  const rol=document.getElementById('newUserRole').value;
-  if(!rawUser) return alert('Escribe un usuario');
-  if(pass.length<6) return alert('Mínimo 6 caracteres');
-  const email = usuarioAEmail(rawUser);
-  const { data, error }=await supa.auth.signUp({email,password:pass});
-  if(error) return alert(error.message);
-  if(data.user){ await supa.from('profiles').insert([{id: data.user.id, email: email, role: rol}]); }
-  alert('✅ Usuario creado:\nUsuario: '+emailAUsuario(email)+'\nRol: '+rol.toUpperCase());
-  cerrarModalUsuarios();
+  const rawUser=document.getElementById('newUserEmail').value.trim(); const pass=document.getElementById('newUserPass').value.trim(); const rol=document.getElementById('newUserRole').value;
+  if(!rawUser) return alert('Escribe un usuario'); if(pass.length<6) return alert('Mínimo 6 caracteres');
+  const email = usuarioAEmail(rawUser); const { data, error }=await supa.auth.signUp({email,password:pass});
+  if(error) return alert(error.message); if(data.user){ await supa.from('profiles').insert([{id: data.user.id, email: email, role: rol}]); }
+  alert('✅ Usuario creado:\nUsuario: '+emailAUsuario(email)+'\nRol: '+rol.toUpperCase()); cerrarModalUsuarios();
   document.getElementById('newUserEmail').value=''; document.getElementById('newUserPass').value='';
 }
-
 function abrirModalUsuarios(){ if(miRol!=='admin') return alert('Solo admin'); document.getElementById('modalUsuarios').classList.remove('hidden'); document.getElementById('modalUsuarios').classList.add('flex'); }
 function cerrarModalUsuarios(){ document.getElementById('modalUsuarios').classList.add('hidden'); document.getElementById('modalUsuarios').classList.remove('flex'); }
-supa.auth.onAuthStateChange(()=>checkSession()); 
-checkSession();
+supa.auth.onAuthStateChange(()=>checkSession()); checkSession();
 
-async function cargarAreas(){ 
-  const { data }=await supa.from('areas').select('*').order('id'); 
-  document.getElementById('status').innerHTML=`✅ ${data.length} áreas`; 
+// --- INICIO FIX DESPLEGABLE CUSTOM - ESTO REEMPLAZA TU cargarAreas VIEJO ---
+function toggleDropdown(){ document.getElementById('dropdownCustom').classList.toggle('hidden'); }
+function renderDropdown(lista){
+  const cont = document.getElementById('dropdownCustom');
+  if(lista.length===0){ cont.innerHTML=`<div class="p-3 text-sm text-slate-400 text-center">Sin resultados</div>`; return; }
+  cont.innerHTML = lista.map(a=> `<div onclick="seleccionarAreaDeLista('${a.id}')" class="px-4 py-2.5 text-[13px] hover:bg-amber-50 cursor-pointer border-b border-slate-50 last:border-0 truncate"><b>${a.id}</b> - ${a.nombre}</div>`).join('');
+}
+function seleccionarAreaDeLista(id){
+  document.getElementById('dropdownCustom').classList.add('hidden');
+  const sel = document.getElementById('selectArea');
+  sel.value = id;
+  mostrarResumen();
+}
+async function cargarAreas(){
+  const { data }=await supa.from('areas').select('*').order('id');
+  document.getElementById('status').innerHTML=`✅ ${data.length} áreas`;
   document.getElementById('contadorAreas').innerText = `${data.length} áreas`;
-  todasLasAreas=data; 
+  todasLasAreas=data;
   const select = document.getElementById('selectArea');
-  select.innerHTML=data.map(a=>`<option value="${a.id}">${a.id} - ${a.nombre}</option>`).join(''); 
-
-  // --- FIX: Restaurar área guardada ---
+  select.innerHTML=data.map(a=>`<option value="${a.id}">${a.id} - ${a.nombre}</option>`).join('');
   const guardada = localStorage.getItem("mh_area_id_v2");
-  if(guardada && data.some(a=>String(a.id)===String(guardada))){
-    select.value = guardada;
-  }
-
-  if(data.length) mostrarResumen(); 
-  cargarTablaGestion(data); 
-  cargarTablaCaptura(data); 
+  if(guardada && data.some(a=>String(a.id)===String(guardada))){ select.value = guardada; }
+  if(data.length){ mostrarResumen(); renderDropdown(data); }
+  cargarTablaGestion(data); cargarTablaCaptura(data);
 }
-
-function mostrarResumen(){ 
-  const selectVal = document.getElementById('selectArea').value;
+function filtrarSelectPrincipal(){
+  const q = document.getElementById('buscadorSelect').value.toLowerCase().trim();
+  const filtradas = q? todasLasAreas.filter(a=> String(a.id).toLowerCase().includes(q) || String(a.nombre).toLowerCase().includes(q)) : todasLasAreas;
+  renderDropdown(filtradas);
+  document.getElementById('dropdownCustom').classList.remove('hidden');
+  document.getElementById('contadorAreas').innerText = `${filtradas.length} de ${todasLasAreas.length} áreas`;
+}
+function mostrarResumen(){
+  const selectVal = document.getElementById('selectArea')?.value;
   if(selectVal){ localStorage.setItem("mh_area_id_v2", String(selectVal)); }
-  const a=todasLasAreas.find(x=>String(x.id)===String(selectVal)); 
-  if(!a) return; 
-  document.getElementById('resumenArea').innerHTML=`<div class="text-center mb-4"><p class="font-bold">${a.id} - ${a.nombre}</p><p class="text-sm text-slate-500">${a.direccion||''}</p></div><div class="grid grid-cols-4 gap-3"><div class="bg-slate-50 border rounded-xl p-4 text-center"><p class="text-xs">AÑO</p><p class="text-xl font-bold">${a.anio||'-'}</p></div><div class="bg-emerald-50 border rounded-xl p-4 text-center"><p class="text-xs text-emerald-600">ACTIVOS</p><p class="text-xl font-bold text-emerald-700">${a.bienes_activos??0}</p></div><div class="bg-red-50 border rounded-xl p-4 text-center"><p class="text-xs text-red-600">FALTANTES</p><p class="text-xl font-bold text-red-700">${a.bienes_faltantes??0}</p></div><div class="bg-blue-50 border rounded-xl p-4 text-center"><p class="text-xs">VEHÍCULOS</p><p class="text-xl font-bold">${a.vehiculos??0}</p></div></div><div class="mt-4 bg-slate-50 rounded-xl p-3 text-center text-sm italic border">${a.observacion||'SIN OBSERVACIONES'}</div><div class="mt-3 text-[11px] text-slate-500 text-center">${a.actualizado_por ? `✏️ Actualizado por <b>${a.actualizado_por}</b> el ${new Date(a.actualizado_en).toLocaleString()}` : 'Sin actualización registrada'}</div>`; 
+  const a=todasLasAreas.find(x=>String(x.id)===String(selectVal));
+  if(!a) return;
+  document.getElementById('textoAreaSeleccionada').innerText = `${a.id} - ${a.nombre}`;
+  document.getElementById('resumenArea').innerHTML=`<div class="text-center mb-4"><p class="font-bold">${a.id} - ${a.nombre}</p><p class="text-sm text-slate-500">${a.direccion||''}</p></div><div class="grid grid-cols-4 gap-3"><div class="bg-slate-50 border rounded-xl p-4 text-center"><p class="text-xs">AÑO</p><p class="text-xl font-bold">${a.anio||'-'}</p></div><div class="bg-emerald-50 border rounded-xl p-4 text-center"><p class="text-xs text-emerald-600">ACTIVOS</p><p class="text-xl font-bold text-emerald-700">${a.bienes_activos??0}</p></div><div class="bg-red-50 border rounded-xl p-4 text-center"><p class="text-xs text-red-600">FALTANTES</p><p class="text-xl font-bold text-red-700">${a.bienes_faltantes??0}</p></div><div class="bg-blue-50 border rounded-xl p-4 text-center"><p class="text-xs">VEHÍCULOS</p><p class="text-xl font-bold">${a.vehiculos??0}</p></div></div><div class="mt-4 bg-slate-50 rounded-xl p-3 text-center text-sm italic border">${a.observacion||'SIN OBSERVACIONES'}</div><div class="mt-3 text-[11px] text-slate-500 text-center">${a.actualizado_por? `✏️ Actualizado por <b>${a.actualizado_por}</b> el ${new Date(a.actualizado_en).toLocaleString()}` : 'Sin actualización registrada'}</div>`;
 }
-function abrirModalArea(){ document.getElementById('modalArea').classList.remove('hidden'); document.getElementById('modalArea').classList.add('flex'); } function cerrarModalArea(){ document.getElementById('modalArea').classList.add('hidden'); document.getElementById('modalArea').classList.remove('flex'); }
-function abrirModalGestion(){ if(miRol!=='admin') return alert('Solo admin'); document.getElementById('modalGestion').classList.remove('hidden'); document.getElementById('modalGestion').classList.add('flex'); } function cerrarModalGestion(){ document.getElementById('modalGestion').classList.add('hidden'); document.getElementById('modalGestion').classList.remove('flex'); }
+// --- FIN FIX DESPLEGABLE ---
+
+function abrirModalArea(){ document.getElementById('modalArea').classList.remove('hidden'); document.getElementById('modalArea').classList.add('flex'); }
+function cerrarModalArea(){ document.getElementById('modalArea').classList.add('hidden'); document.getElementById('modalArea').classList.remove('flex'); }
+function abrirModalGestion(){ if(miRol!=='admin') return alert('Solo admin'); document.getElementById('modalGestion').classList.remove('hidden'); document.getElementById('modalGestion').classList.add('flex'); }
+function cerrarModalGestion(){ document.getElementById('modalGestion').classList.add('hidden'); document.getElementById('modalGestion').classList.remove('flex'); }
 function abrirModalCaptura(){ document.getElementById('modalCaptura').classList.remove('hidden'); document.getElementById('modalCaptura').classList.add('flex'); document.getElementById('panelResultados').classList.add('hidden'); } function cerrarModalCaptura(){ document.getElementById('modalCaptura').classList.add('hidden'); document.getElementById('modalCaptura').classList.remove('flex'); }
 function cargarTablaGestion(data){ document.getElementById('tablaGestion').innerHTML=data.map(a=>`<tr class="border-b"><td class="p-2"><input id="edit_id_${a.id}" value="${a.id}" class="border rounded-lg px-2 py-1 w-20"></td><td class="p-2"><input id="edit_nom_${a.id}" value="${a.nombre}" class="border rounded-lg px-2 py-1 w-full"></td><td class="p-2 flex gap-1"><button onclick="guardarEdicionArea('${a.id}')" class="bg-emerald-500 text-white px-3 py-1 rounded-lg">💾</button><button onclick="borrarArea('${a.id}')" class="bg-red-500 text-white px-3 py-1 rounded-lg">🗑️</button></td></tr>`).join(''); }
 function cargarTablaCaptura(data){ document.getElementById('tablaCaptura').innerHTML=data.map(a=>`<tr class="border-b hover:bg-emerald-50 cursor-pointer" onclick="seleccionarAreaCaptura('${a.id}')"><td class="p-3 font-bold">${a.id}</td><td class="p-3">${a.nombre}</td><td class="p-3 text-sm text-slate-500">${a.direccion||''}</td></tr>`).join(''); }
@@ -345,7 +330,7 @@ async function guardarCapturaActualizada(){
   if(error) alert(error.message);
   else { alert(`✅ Actualizado por ${datos.actualizado_por}`); cerrarModalCaptura(); cargarAreas(); }
 }
-document.getElementById('selectArea').addEventListener('change', mostrarResumen);
+
 
 // Funcion para reportes 
 let chartInstance = null;
@@ -390,25 +375,6 @@ function filtrarReportePorDireccion(){
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, title: { display: true, text: dirSel } } }
   });
 }
-function filtrarSelectPrincipal(){
-  const q = document.getElementById('buscadorSelect').value.toLowerCase().trim();
-  const filtradas = q? todasLasAreas.filter(a=> String(a.id).toLowerCase().includes(q) || String(a.nombre).toLowerCase().includes(q)) : todasLasAreas;
-
-  const select = document.getElementById('selectArea');
-  const valorActual = select.value;
-  select.innerHTML = filtradas.map(a=>`<option value="${a.id}">${a.id} - ${a.nombre}</option>`).join('');
-
-  // si el valor actual sigue en la lista, lo mantiene
-  if(filtradas.some(a=>String(a.id)===String(valorActual))){
-    select.value = valorActual;
-  }
-    else if(filtradas.length > 0){
-    select.value = filtradas[0].id;
-  }
-
-  document.getElementById('contadorAreas').innerText = `${filtradas.length} de ${todasLasAreas.length} áreas`;
-  if(filtradas.length) mostrarResumen();
-}
 
 function cerrarModalReportes(){ document.getElementById('modalReportes').classList.add('hidden'); document.getElementById('modalReportes').classList.remove('flex'); }
 
@@ -433,6 +399,13 @@ function exportarPDF(){
   doc.autoTable({ startY: 95, head: [['ID','Area','Activos','Faltantes','Vehiculos']], body: rows, styles:{fontSize:7}, headStyles:{fillColor:[15,23,42]} });
   doc.save(`Reporte_${dirSel.replace(/[^a-z0-9]/gi,'_')}.pdf`);
 }
+window.addEventListener('click', (e)=>{
+  const dropdown = document.getElementById('dropdownCustom');
+  const btn = document.getElementById('btnSelectArea');
+  if(!dropdown.contains(e.target) && !btn.contains(e.target) && !document.getElementById('buscadorSelect').contains(e.target)){
+    dropdown.classList.add('hidden');
+  }
+});
 
 </script>
 </body>
