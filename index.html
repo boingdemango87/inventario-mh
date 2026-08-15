@@ -32,6 +32,8 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 #app{position:relative; width:100%; min-height:100vh; background:#f1f5f9; display:block; color:#1e293b; z-index:1}
 #app.hidden{display:none!important}
 #loginScreen.hidden{display:none!important}
+#selectArea{width:100%; max-width:100%; text-overflow:ellipsis; font-size:14px}
+#selectArea option{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:90vw; font-size:14px}
 @media(max-width:1000px){
   #loginScreen{flex-direction:column; overflow-y:auto; height:100dvh; min-height:100dvh; -webkit-overflow-scrolling:touch}
   .left-panel{flex:none; width:100%; height:38vh; min-height:300px; max-height:400px}
@@ -79,10 +81,11 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 <div id="avisoRol" class="mt-6 p-3 rounded-xl text-xs font-bold text-center hidden"></div>
 </div>
 </aside>
-<main class="col-span-12 lg:col-span-9 space-y-5"><div class="bg-white rounded-2xl p-5 border shadow-sm">
+<main class="col-span-12 lg:col-span-9 space-y-5">
+<div class="bg-white rounded-2xl p-5 border shadow-sm overflow-hidden">
   <label class="text-xs font-bold text-amber-600 uppercase mb-2 block">Área Seleccionada</label>
-  <input id="buscadorSelect" oninput="filtrarSelectPrincipal()" placeholder="🔍 Escribe para buscar: ej. ALCALDE, 1000, TESORERIA..." class="w-full mb-3 bg-slate-50 border border-amber-300 rounded-xl px-4 py-3 font-medium outline-none focus:border-amber-500">
-  <select id="selectArea" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 font-medium"></select>
+  <input id="buscadorSelect" oninput="filtrarSelectPrincipal()" placeholder="🔍 Escribe para buscar: ej. ALCALDE, 1000, TESORERIA..." class="w-full mb-3 bg-slate-50 border border-amber-300 rounded-xl px-4 py-3 font-medium outline-none focus:border-amber-500 text-sm">
+  <select id="selectArea" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 font-medium truncate text-sm"></select>
   <p id="contadorAreas" class="text-[11px] text-slate-400 mt-2 text-right">480 áreas</p>
 </div>
 <div class="bg-white rounded-2xl p-6 border shadow-sm"><h3 class="font-bold text-slate-700 text-center mb-5">Resumen del Área</h3><div id="resumenArea"><p class="text-center text-slate-400 py-10">Selecciona un área</p></div></div></main>
