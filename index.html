@@ -58,7 +58,7 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
       <div class="input-group"><i class="fa-solid fa-lock icon-left" style="font-size:14px"></i><input id="passLogin" type="password" placeholder="Contraseña" class="input-v3"><i id="toggleEye" class="fa-regular fa-eye-slash icon-right" onclick="togglePass()"></i></div>
       <button onclick="login()" class="btn-v3">Entrar →</button>
       <p id="loginError" style="color:#f87171; font-size:13px; text-align:center; margin-top:12px; display:none"></p>
-      <div style="text-align:center; margin-top:16px; color:#5a5f78; font-size:12px">Usa tu usuario asignado<br>Ej: <b style="color:#8b91a7">juan.perez</b></div>
+      <div style="text-align:center; margin-top:16px; color:#5a5f78; font-size:12px">Usa tu usuario asignado o contacta al administrador<br>Ej: <b style="color:#8b91a7">juan.perez</b></div>
       <div style="text-align:center; margin-top:22px; color:#5a5f78; font-size:11px">v2.1.0 • SISTEMA DE GESTION • 2026</div>
     </div>
   </div>
@@ -108,7 +108,7 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 
 <div id="modalCaptura" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"><div class="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden"><div class="p-5 bg-emerald-600 text-white flex justify-between items-center"><h2 class="font-bold">📸 Captura de Inventario</h2><button onclick="cerrarModalCaptura()" class="bg-white/20 px-3 py-1 rounded-full">X</button></div><div class="p-4 bg-slate-50 border-b"><input id="buscadorCaptura" oninput="filtrarCaptura()" placeholder="🔍 Filtrar área..." class="w-full border-2 border-emerald-500 rounded-xl px-4 py-3"></div><div class="overflow-auto max-h-64 px-4"><table class="w-full"><tbody id="tablaCaptura"></tbody></table></div><div id="panelResultados" class="hidden p-6 bg-slate-50 border-t"><h3 id="tituloAreaSeleccionada" class="font-bold text-emerald-700 text-center mb-4"></h3><div class="grid grid-cols-2 gap-3"><div><label class="text-xs font-bold text-slate-500">AÑO</label><input id="capAnio" type="number" class="w-full border rounded-xl px-3 py-2.5 mt-1"></div><div><label class="text-xs font-bold text-slate-500">VEHÍCULOS</label><input id="capVehiculos" type="number" class="w-full border rounded-xl px-3 py-2.5 mt-1"></div><div><label class="text-xs font-bold text-emerald-700">ACTIVOS</label><input id="capActivos" type="number" class="w-full border-2 border-emerald-200 rounded-xl px-3 py-2.5 mt-1"></div><div><label class="text-xs font-bold text-red-600">FALTANTES</label><input id="capFaltantes" type="number" class="w-full border-2 border-red-200 rounded-xl px-3 py-2.5 mt-1"></div></div><div class="mt-4"><label class="text-xs font-bold text-slate-500">OBSERVACIÓN</label><textarea id="capturaNota" class="w-full border rounded-xl px-3 py-2 h-20 mt-1"></textarea></div><button onclick="guardarCapturaActualizada()" class="w-full mt-5 bg-emerald-600 text-white font-bold py-3.5 rounded-xl">💾 Actualizar Inventario</button></div></div></div>
 
-<!-- Se añade reportes areas -->
+<!-- Se añade reportes areas - OPTIMIZADO -->
 <div id="modalReportes" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
 <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
 <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
@@ -125,15 +125,19 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 <div class="bg-emerald-50 p-4 rounded-xl border"><p class="text-xs text-emerald-600">ACTIVOS</p><p id="repActivos" class="text-2xl font-bold text-emerald-700">0</p></div>
 <div class="bg-red-50 p-4 rounded-xl border"><p class="text-xs text-red-600">FALTANTES</p><p id="repFaltantes" class="text-2xl font-bold text-red-700">0</p></div>
 </div>
-<div class="flex justify-center bg-slate-50 rounded-xl p-2 border">
-  <div style="width:320px; height:260px; position:relative;">
-    <canvas id="chartPastel"></canvas>
+
+<div class="grid grid-cols-12 gap-3">
+  <div class="col-span-12 md:col-span-8 flex justify-center bg-slate-50 rounded-xl p-2 border">
+    <div style="width:100%; max-width:360px; height:260px; position:relative;">
+      <canvas id="chartPastel"></canvas>
+    </div>
+  </div>
+  <div class="col-span-12 md:col-span-4 flex flex-col gap-3">
+    <button onclick="exportarExcel()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-5 rounded-xl shadow">📗 Exportar Excel</button>
+    <button onclick="exportarPDF()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-5 rounded-xl shadow">📕 Exportar PDF con Gráfica</button>
   </div>
 </div>
-<div class="flex gap-2">
-  <button onclick="exportarExcel()" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl">📗 Exportar Excel</button>
-  <button onclick="exportarPDF()" class="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl">📕 Exportar PDF con Gráfica</button>
-</div>
+
 <div id="tablaReporte" class="mt-4"></div>
 </div>
 </div>
@@ -351,9 +355,13 @@ function abrirModalReportes(){
 function filtrarReportePorDireccion(){
   let dirSel = document.getElementById('filtroDireccion').value;
   areasFiltradasReporte = dirSel === 'TODAS'? todasLasAreas : todasLasAreas.filter(a=> (a.direccion||'SIN DIRECCION').trim().toUpperCase() === dirSel.toUpperCase());
-  let totalAct=0, totalFal=0;
   
-  areasFiltradasReporte.forEach(a=>{ totalAct+= a.bienes_activos||0; totalFal+= a.bienes_faltantes||0; });
+  let totalAct=0, totalFal=0, totalVeh=0;
+  areasFiltradasReporte.forEach(a=>{ 
+    totalAct+= a.bienes_activos||0; 
+    totalFal+= a.bienes_faltantes||0;
+    totalVeh+= a.vehiculos||0;
+  });
 
   document.getElementById('repTotalAreas').innerText = areasFiltradasReporte.length;
   document.getElementById('repActivos').innerText = totalAct;
@@ -372,6 +380,7 @@ function filtrarReportePorDireccion(){
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, title: { display: true, text: dirSel } } }
   });
 }
+
 function cerrarModalReportes(){ document.getElementById('modalReportes').classList.add('hidden'); document.getElementById('modalReportes').classList.remove('flex'); }
 
 function exportarExcel(){
