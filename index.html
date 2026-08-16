@@ -314,21 +314,43 @@ function seleccionarAreaCaptura(id){
 }
 async function guardarNuevaArea(){ const id=document.getElementById('nuevaClave').value.trim(), nombre=document.getElementById('nuevoNombre').value.trim().toUpperCase(), direccion=document.getElementById('nuevaDireccion').value.trim().toUpperCase(); const { error }=await supa.from('areas').insert([{id,nombre,direccion}]); if(error) alert(error.message); else { cerrarModalArea(); cargarAreas(); } }
 async function guardarEdicionArea(idOriginal){ const nuevoId=document.getElementById(`edit_id_${idOriginal}`).value.trim(), nuevoNombre=document.getElementById(`edit_nom_${idOriginal}`).value.trim().toUpperCase(); const { error }=await supa.from('areas').update({id:nuevoId,nombre:nuevoNombre}).eq('id',idOriginal); if(error) alert(error.message); else cargarAreas(); }
-async function borrarArea(id){ if(!confirm('¿Borrar?')) return; await supa.from('areas').delete().eq('id',id); cargarAreas(); }
+async function borrarArea(id){ 
+  if(!confirm('¿Borrar?')) return; 
+  await supa.from('areas').delete().eq('id',id); 
+  cargarAreas(); 
+}
+//Correccion en la captura
 async function guardarCapturaActualizada(){
+  const anio = parseInt(document.getElementById('capAnio').value);
+  const activos = parseInt(document.getElementById('capActivos').value);
+  const faltantes = parseInt(document.getElementById('capFaltantes').value);
+  const vehiculos = parseInt(document.getElementById('capVehiculos').value);
+  
+  if(isNaN(anio) || isNaN(activos) || isNaN(faltantes) || isNaN(vehiculos)){
+    return alert('❌ Solo números, sin letras');
+  }
+  if(activos < 0 || faltantes < 0 || vehiculos < 0 || anio < 2000){
+    return alert('❌ Revisa los números, no se permiten negativos y el año debe ser mayor a 2000');
+  }
+
   const { data: { user } } = await supa.auth.getUser();
-  const datos={
-    anio:parseInt(document.getElementById('capAnio').value),
-    bienes_activos:parseInt(document.getElementById('capActivos').value),
-    bienes_faltantes:parseInt(document.getElementById('capFaltantes').value),
-    vehiculos:parseInt(document.getElementById('capVehiculos').value),
-    observacion:document.getElementById('capturaNota').value,
+  const datos = {
+    anio: anio,
+    bienes_activos: activos,
+    bienes_faltantes: faltantes,
+    vehiculos: vehiculos,
+    observacion: document.getElementById('capturaNota').value,
     actualizado_por: emailAUsuario(user.email),
     actualizado_en: new Date().toISOString()
   };
-  const { error }=await supa.from('areas').update(datos).eq('id',areaSeleccionadaCaptura.id);
+
+  const { error } = await supa.from('areas').update(datos).eq('id', areaSeleccionadaCaptura.id);
   if(error) alert(error.message);
-  else { alert(`✅ Actualizado por ${datos.actualizado_por}`); cerrarModalCaptura(); cargarAreas(); }
+  else { 
+    alert(`✅ Actualizado por ${datos.actualizado_por}`); 
+    cerrarModalCaptura(); 
+    cargarAreas(); 
+  }
 }
 
 
