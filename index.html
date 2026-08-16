@@ -272,8 +272,11 @@ async function cargarAreas(){
   const guardada = localStorage.getItem("mh_area_id_v2");
   if(guardada && data.some(a=>String(a.id)===String(guardada))){ select.value = guardada; }
   if(data.length){ mostrarResumen(); renderDropdown(data); }
+  // dentro de cargarAreas()
   cargarTablaGestion(data); cargarTablaCaptura(data);
+  respaldoNube(); // <-- admin
 }
+
 function filtrarSelectPrincipal(){
   const q = document.getElementById('buscadorSelect').value.toLowerCase().trim();
   const filtradas = q? todasLasAreas.filter(a=> String(a.id).toLowerCase().includes(q) || String(a.nombre).toLowerCase().includes(q)) : todasLasAreas;
@@ -289,8 +292,8 @@ function mostrarResumen(){
   document.getElementById('textoAreaSeleccionada').innerText = `${a.id} - ${a.nombre}`;
   document.getElementById('resumenArea').innerHTML=`<div class="text-center mb-4"><p class="font-bold">${a.id} - ${a.nombre}</p><p class="text-sm text-slate-500">${a.direccion||''}</p></div><div class="grid grid-cols-4 gap-3"><div class="bg-slate-50 border rounded-xl p-4 text-center"><p class="text-xs">AÑO</p><p class="text-xl font-bold">${a.anio||'-'}</p></div><div class="bg-emerald-50 border rounded-xl p-4 text-center"><p class="text-xs text-emerald-600">ACTIVOS</p><p class="text-xl font-bold text-emerald-700">${a.bienes_activos??0}</p></div><div class="bg-red-50 border rounded-xl p-4 text-center"><p class="text-xs text-red-600">FALTANTES</p><p class="text-xl font-bold text-red-700">${a.bienes_faltantes??0}</p></div><div class="bg-blue-50 border rounded-xl p-4 text-center"><p class="text-xs">VEHÍCULOS</p><p class="text-xl font-bold">${a.vehiculos??0}</p></div></div><div class="mt-4 bg-slate-50 rounded-xl p-3 text-center text-sm italic border">${a.observacion||'SIN OBSERVACIONES'}</div><div class="mt-3 text-[11px] text-slate-500 text-center">${a.actualizado_por? `✏️ Actualizado por <b>${a.actualizado_por}</b> el ${new Date(a.actualizado_en).toLocaleString()}` : 'Sin actualización registrada'}</div>`;
 }
-// --- FIN FIX DESPLEGABLE ---
 
+// --- FIN FIX DESPLEGABLE ---
 function abrirModalArea(){ document.getElementById('modalArea').classList.remove('hidden'); document.getElementById('modalArea').classList.add('flex'); }
 function cerrarModalArea(){ document.getElementById('modalArea').classList.add('hidden'); document.getElementById('modalArea').classList.remove('flex'); }
 function abrirModalGestion(){ if(miRol!=='admin') return alert('Solo admin'); document.getElementById('modalGestion').classList.remove('hidden'); document.getElementById('modalGestion').classList.add('flex'); }
@@ -319,7 +322,8 @@ async function borrarArea(id){
   await supa.from('areas').delete().eq('id',id); 
   cargarAreas(); 
 }
-//Correccion en la captura
+
+//Correccion en la captura - PUNTO 7 CERRADO
 async function guardarCapturaActualizada(){
   const anio = parseInt(document.getElementById('capAnio').value);
   const activos = parseInt(document.getElementById('capActivos').value);
@@ -345,14 +349,40 @@ async function guardarCapturaActualizada(){
   };
 
   const { error } = await supa.from('areas').update(datos).eq('id', areaSeleccionadaCaptura.id);
-  if(error) alert(error.message);
-  else { 
+  if(error){
+    alert(error.message);
+  } else { 
     alert(`✅ Actualizado por ${datos.actualizado_por}`); 
     cerrarModalCaptura(); 
     cargarAreas(); 
   }
 }
 
+
+// RESPALDO SEMANAL SOLO ADMIN - VIERNES 5PM - PUNTO 10 CERRADO
+async function respaldoNube(){
+  if(miRol !== 'admin') return;
+  
+  const hoy = new Date();
+  // 5 = viernes, 17 = 5pm
+  if(hoy.getDay() !== 5 || hoy.getHours() < 17) return; 
+
+  const key = 'respaldo_'+hoy.toISOString().slice(0,10);
+  if(localStorage.getItem(key)) return; // ya se hizo hoy
+
+  const { data } = await supa.from('areas').select('*');
+  const csv = data.map(a=>`${a.id},${a.nombre},${a.bienes_activos},${a.bienes_faltantes},${a.vehiculos}`).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  
+  const nombre = `MH_${hoy.toISOString().slice(0,10)}_17hrs.csv`;
+  const { error } = await supa.storage.from('respaldos').upload(nombre, blob);
+  
+  if(!error){
+    localStorage.setItem(key, '1');
+    console.log('☁️ Respaldo 5pm subido: ' + nombre);
+ 
+  }
+}
 
 // Funcion para reportes 
 let chartInstance = null;
@@ -427,7 +457,8 @@ window.addEventListener('click', (e)=>{
   if(!dropdown.contains(e.target) && !btn.contains(e.target) && !document.getElementById('buscadorSelect').contains(e.target)){
     dropdown.classList.add('hidden');
   }
-});
+}
+);
 
 </script>
 </body>
