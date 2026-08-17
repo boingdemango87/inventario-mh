@@ -59,7 +59,7 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
       <button onclick="login()" class="btn-v3">Entrar →</button>
       <p id="loginError" style="color:#f87171; font-size:13px; text-align:center; margin-top:12px; display:none"></p>
       <div style="text-align:center; margin-top:16px; color:#5a5f78; font-size:12px">Usa tu usuario asignado<br>Ej: <b style="color:#8b91a7">juan.perez</b></div>
-      <div style="text-align:center; margin-top:22px; color:#5a5f78; font-size:11px">v2.1.0 • SISTEMA DE GESTION • 2026</div>
+      <div style="text-align:center; margin-top:22px; color:#5a5f78; font-size:11px">v2.2.0 • SISTEMA DE GESTION • 2026</div>
     </div>
   </div>
 </div>
@@ -75,6 +75,7 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 <button id="btnGestion" onclick="abrirModalGestion()" class="w-full bg-slate-800 text-white font-semibold py-3 rounded-xl">Editar / Borrar</button>
 <button id="btnCaptura" onclick="abrirModalCaptura()" class="w-full bg-emerald-600 text-white font-semibold py-3 rounded-xl">📸 Captura Inventario</button>
 <button onclick="abrirModalReportes()" class="w-full bg-amber-500 text-white font-semibold py-3 rounded-xl">📊 Reportes</button>
+<button id="btnAvance" onclick="abrirModalAvance()" class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl hidden">🚀 Panel de Avance</button>
 <button onclick="verHistorial()" class="w-full bg-slate-200 text-slate-700 font-semibold py-3 rounded-xl">🕒 Historial</button>
 </div>
 <div id="avisoRol" class="mt-6 p-3 rounded-xl text-xs font-bold text-center hidden"></div>
@@ -249,7 +250,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 
 let todasLasAreas=[], areaSeleccionadaCaptura=null, miRol='capturista';
 
-async function checkSession(){ /* tu misma función */
+async function checkSession(){
   const { data:{session} } = await supa.auth.getSession();
   if(session){
     const { data: perfil } = await supa.from('profiles').select('role').eq('id', session.user.id).single();
@@ -259,13 +260,28 @@ async function checkSession(){ /* tu misma función */
     document.body.style.overflow='auto';
     document.getElementById('userEmail').innerText = emailAUsuario(session.user.email);
     const badge=document.getElementById('userRoleBadge'); const aviso=document.getElementById('avisoRol');
-    if(miRol==='admin'){ badge.innerText='👑 ADMIN'; badge.className='text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700'; aviso.classList.add('hidden'); }
-    else { badge.innerText='👷 CAPTURISTA'; badge.className='text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-700'; document.getElementById('btnNuevaArea').classList.add('hidden'); document.getElementById('btnGestion').classList.add('hidden'); document.getElementById('btnUsuarios').classList.add('hidden'); aviso.innerText='🔒 Modo CAPTURISTA'; aviso.className='mt-6 p-3 rounded-xl text-xs font-bold text-center bg-blue-50 text-blue-700 border block'; }
+    if(miRol==='admin'){
+      badge.innerText='👑 ADMIN';
+      badge.className='text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700';
+      aviso.classList.add('hidden');
+      document.getElementById('btnAvance').classList.remove('hidden'); // <--- ESTA
+    }
+    else {
+      badge.innerText='👷 CAPTURISTA';
+      badge.className='text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-700';
+      document.getElementById('btnNuevaArea').classList.add('hidden');
+      document.getElementById('btnGestion').classList.add('hidden');
+      document.getElementById('btnUsuarios').classList.add('hidden');
+      document.getElementById('btnAvance').classList.add('hidden'); // <--- Y ESTA
+      aviso.innerText='🔒 Modo CAPTURISTA';
+      aviso.className='mt-6 p-3 rounded-xl text-xs font-bold text-center bg-blue-50 text-blue-700 border block';
+    }
     cargarAreas();
   } else {
     document.getElementById('loginScreen').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); document.body.style.overflow='hidden';
   }
 }
+
 async function login(){
   const rawUser=document.getElementById('emailLogin').value.trim(); const pass=document.getElementById('passLogin').value; const errEl=document.getElementById('loginError');
   if(!rawUser||!pass){ errEl.innerText='Llena usuario y contraseña'; errEl.style.display='block'; return; }
@@ -541,17 +557,39 @@ window.addEventListener('click', (e)=>{
   }
 });
 
-async function verHistorial(){  document.getElementById('modalHistorial').classList.remove('hidden');
+function abrirModalAvance(){
+  if(miRol!=='admin') return alert('Solo admin');
+  document.getElementById('modalAvance').classList.remove('hidden');
+  document.getElementById('modalAvance').classList.add('flex');
+  let total = todasLasAreas.length;
+  let capturadas = todasLasAreas.filter(a=> a.actualizado_en).length;
+  let pendientes = total - capturadas;
+  let porc = total? Math.round((capturadas/total)*100) : 0;
+  document.getElementById('avTotal').innerText = total;
+  document.getElementById('avCapturadas').innerText = capturadas;
+  document.getElementById('avPendientes').innerText = pendientes;
+  document.getElementById('avBarra').style.width = porc+'%';
+  document.getElementById('avPorcentaje').innerText = porc+'% completado';
+  document.getElementById('avLista').innerHTML = todasLasAreas.map(a=> `
+    <div class="flex justify-between p-2.5 border-b text-[12px] ${a.actualizado_en? 'bg-emerald-50' : 'bg-red-50'}">
+      <span class="truncate"><b>${a.id}</b> - ${a.nombre}</span>
+      <span class="ml-2 shrink-0">${a.actualizado_en? '✅ '+a.actualizado_por : '❌ Pendiente'}</span>
+    </div>`).join('');
+}
+function cerrarModalAvance(){
+  document.getElementById('modalAvance').classList.add('hidden');
+  document.getElementById('modalAvance').classList.remove('flex');
+}
+
+async function verHistorial(){ 
+  document.getElementById('modalHistorial').classList.remove('hidden');
   document.getElementById('modalHistorial').classList.add('flex');
   document.getElementById('tablaHistorial').innerHTML = 'Cargando...';
-
   const { data } = await supa.from('historial').select('*').order('fecha', {ascending: false}).limit(100);
-
   if(!data || data.length===0){
     document.getElementById('tablaHistorial').innerHTML = '<p class="text-center text-slate-400 p-10">Sin movimientos aún</p>';
     return;
   }
-
   document.getElementById('tablaHistorial').innerHTML = data.map(h=> `
     <div class="border rounded-xl p-3 bg-slate-50 text-[12px]">
       <div class="flex justify-between font-bold"><span>📍 ${h.area_id} - ${h.accion}</span><span class="text-slate-500">${new Date(h.fecha).toLocaleString()}</span></div>
@@ -565,5 +603,10 @@ function cerrarHistorial(){
   document.getElementById('modalHistorial').classList.remove('flex');
 }
 </script>
+
+<div id="modalAvance" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+  ... tu modal ...
+</div>
+
 </body>
 </html>
