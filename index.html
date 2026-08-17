@@ -75,6 +75,7 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 <button id="btnGestion" onclick="abrirModalGestion()" class="w-full bg-slate-800 text-white font-semibold py-3 rounded-xl">Editar / Borrar</button>
 <button id="btnCaptura" onclick="abrirModalCaptura()" class="w-full bg-emerald-600 text-white font-semibold py-3 rounded-xl">📸 Captura Inventario</button>
 <button onclick="abrirModalReportes()" class="w-full bg-amber-500 text-white font-semibold py-3 rounded-xl">📊 Reportes</button>
+<button onclick="verHistorial()" class="w-full bg-slate-200 text-slate-700 font-semibold py-3 rounded-xl">🕒 Historial</button>
 </div>
 <div id="avisoRol" class="mt-6 p-3 rounded-xl text-xs font-bold text-center hidden"></div>
 </div>
@@ -83,7 +84,6 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 <div class="bg-white rounded-2xl p-5 border shadow-sm overflow-visible">
   <label class="text-xs font-bold text-amber-600 uppercase mb-2 block">ÁREA SELECCIONADA</label>
   <input id="buscadorSelect" oninput="filtrarSelectPrincipal()" placeholder="🔍 Escribe para buscar: ej. ALCALDE, 1000, TESORERIA..." class="w-full mb-3 bg-slate-50 border border-amber-300 rounded-xl px-4 py-3 font-medium outline-none focus:border-amber-500 text-sm">
-
   <div class="relative">
     <button id="btnSelectArea" onclick="toggleDropdown()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 font-medium text-sm text-left flex justify-between items-center truncate">
       <span id="textoAreaSeleccionada" class="truncate">Selecciona un área</span>
@@ -158,6 +158,18 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 <div id="tablaReporte" class="mt-4"></div>
 </div>
 </div>
+</div>
+//Modal Historico
+<div id="modalHistorial" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
+    <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
+      <h2 class="font-bold">🕒 Histórico de Movimientos</h2>
+      <button onclick="cerrarHistorial()" class="bg-white/10 px-3 py-1 rounded-full">X</button>
+    </div>
+    <div class="p-4 overflow-auto flex-1">
+      <div id="tablaHistorial" class="space-y-2"></div>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -334,30 +346,43 @@ async function guardarCapturaActualizada(){
     return alert('❌ Solo números, sin letras');
   }
   if(activos < 0 || faltantes < 0 || vehiculos < 0 || anio < 2000){
-    return alert('❌ Revisa los números, no se permiten negativos y el año debe ser mayor a 2000');
+    return alert('❌ Revisa los números');
   }
 
   const { data: { user } } = await supa.auth.getUser();
+  const usuario = emailAUsuario(user.email);
+
+  // Guardamos el ANTES para el histórico
+  const antes = {...areaSeleccionadaCaptura};
+
   const datos = {
     anio: anio,
     bienes_activos: activos,
     bienes_faltantes: faltantes,
     vehiculos: vehiculos,
     observacion: document.getElementById('capturaNota').value,
-    actualizado_por: emailAUsuario(user.email),
+    actualizado_por: usuario,
     actualizado_en: new Date().toISOString()
   };
 
   const { error } = await supa.from('areas').update(datos).eq('id', areaSeleccionadaCaptura.id);
+  
   if(error){
     alert(error.message);
   } else { 
-    alert(`✅ Actualizado por ${datos.actualizado_por}`); 
+    // AQUÍ SE GUARDA EL HISTÓRICO
+    await supa.from('historial').insert([{
+      area_id: areaSeleccionadaCaptura.id,
+      accion: 'CAPTURA',
+      usuario: usuario,
+      detalle: { antes: antes, despues: datos }
+    }]);
+
+    alert(`✅ Actualizado por ${usuario}`); 
     cerrarModalCaptura(); 
     cargarAreas(); 
   }
 }
-
 
 // RESPALDO SEMANAL SOLO ADMIN - VIERNES 5PM - PUNTO 10 CERRADO
 async function respaldoNube(){
@@ -383,7 +408,6 @@ async function respaldoNube(){
  
   }
 }
-
 // Funcion para reportes 
 let chartInstance = null;
 let areasFiltradasReporte = [];
@@ -427,9 +451,7 @@ function filtrarReportePorDireccion(){
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, title: { display: true, text: dirSel } } }
   });
 }
-
 function cerrarModalReportes(){ document.getElementById('modalReportes').classList.add('hidden'); document.getElementById('modalReportes').classList.remove('flex'); }
-
 function exportarExcel(){
   let dirSel = document.getElementById('filtroDireccion').value;
   let csv = "\uFEFFID,Nombre,Activos,Faltantes,Vehiculos\n" + areasFiltradasReporte.map(a=> `${a.id},"${(a.nombre||'').replace(/"/g,'""')}",${a.bienes_activos||0},${a.bienes_faltantes||0},${a.vehiculos||0}`).join("\n");
@@ -437,7 +459,6 @@ function exportarExcel(){
   let url = URL.createObjectURL(blob);
   let a = document.createElement('a'); a.href=url; a.download=`Reporte_${dirSel.replace(/[^a-z0-9]/gi,'_')}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
 }
-
 function exportarPDF(){
   let dirSel = document.getElementById('filtroDireccion').value;
   const { jsPDF } = window.jspdf;
@@ -457,9 +478,31 @@ window.addEventListener('click', (e)=>{
   if(!dropdown.contains(e.target) && !btn.contains(e.target) && !document.getElementById('buscadorSelect').contains(e.target)){
     dropdown.classList.add('hidden');
   }
-}
-);
+});
 
+async function verHistorial(){  document.getElementById('modalHistorial').classList.remove('hidden');
+  document.getElementById('modalHistorial').classList.add('flex');
+  document.getElementById('tablaHistorial').innerHTML = 'Cargando...';
+
+  const { data } = await supa.from('historial').select('*').order('fecha', {ascending: false}).limit(100);
+
+  if(!data || data.length===0){
+    document.getElementById('tablaHistorial').innerHTML = '<p class="text-center text-slate-400 p-10">Sin movimientos aún</p>';
+    return;
+  }
+
+  document.getElementById('tablaHistorial').innerHTML = data.map(h=> `
+    <div class="border rounded-xl p-3 bg-slate-50 text-[12px]">
+      <div class="flex justify-between font-bold"><span>📍 ${h.area_id} - ${h.accion}</span><span class="text-slate-500">${new Date(h.fecha).toLocaleString()}</span></div>
+      <div class="mt-1">👤 <b>${h.usuario}</b></div>
+      <div class="mt-1 text-[11px] text-slate-600 bg-white p-2 rounded border">Antes: ${JSON.stringify(h.detalle?.antes?.bienes_activos)} act / ${JSON.stringify(h.detalle?.antes?.bienes_faltantes)} falt → Después: <b class="text-emerald-600">${h.detalle?.despues?.bienes_activos} act</b> / <b class="text-red-600">${h.detalle?.despues?.bienes_faltantes} falt</b></div>
+    </div>
+  `).join('');
+}
+function cerrarHistorial(){
+  document.getElementById('modalHistorial').classList.add('hidden');
+  document.getElementById('modalHistorial').classList.remove('flex');
+}
 </script>
 </body>
 </html>
