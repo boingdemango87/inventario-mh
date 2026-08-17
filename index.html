@@ -59,7 +59,7 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
       <button onclick="login()" class="btn-v3">Entrar →</button>
       <p id="loginError" style="color:#f87171; font-size:13px; text-align:center; margin-top:12px; display:none"></p>
       <div style="text-align:center; margin-top:16px; color:#5a5f78; font-size:12px">Usa tu usuario asignado<br>Ej: <b style="color:#8b91a7">juan.perez</b></div>
-      <div style="text-align:center; margin-top:22px; color:#5a5f78; font-size:11px">v2.2.0 • SISTEMA DE GESTION • 2026</div>
+      <div style="text-align:center; margin-top:22px; color:#5a5f78; font-size:11px">v2.2.1 • MULTI-USUARIO FIX • 2026</div>
     </div>
   </div>
 </div>
@@ -239,11 +239,19 @@ const SUPABASE_URL = 'https://wnspprwtoulfnvwijzdu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Induc3Bwcnd0b3VsZm52d2lqemR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyMzI5NzYsImV4cCI6MjEwMTgwODk3Nn0.N1uZFne7EJgWdhSAdxrYucGguf26iNQwDYMK7MENm58';
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// --- TIEMPO REAL FIX - ANTI CONGELAMIENTO ---
+// --- TIEMPO REAL FIX - ANTI CONGELAMIENTO v2.2.1 ---
 let realtimeChannel = null;
 function suscribirRealtime() {
   if (realtimeChannel) { supa.removeChannel(realtimeChannel); realtimeChannel = null; }
-  realtimeChannel = supa.channel('inventario-mh-' + Date.now()).on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, () => { cargarAreas(); }).subscribe();
+  realtimeChannel = supa.channel('inventario-mh-' + Date.now()).on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, () => {
+    const modalCapturaAbierto = document.getElementById('modalCaptura') &&!document.getElementById('modalCaptura').classList.contains('hidden');
+    if(modalCapturaAbierto){
+      // Si alguien está capturando, solo actualiza datos en silencio para no borrarle el formulario
+      supa.from('areas').select('*').order('id').then(({data})=>{ if(data) todasLasAreas=data; });
+    } else {
+      cargarAreas();
+    }
+  }).subscribe();
 }
 suscribirRealtime();
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { suscribirRealtime(); cargarAreas(); } });
@@ -264,7 +272,7 @@ async function checkSession(){
       badge.innerText='👑 ADMIN';
       badge.className='text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700';
       aviso.classList.add('hidden');
-      document.getElementById('btnAvance').classList.remove('hidden'); // <--- ESTA
+      document.getElementById('btnAvance').classList.remove('hidden');
     }
     else {
       badge.innerText='👷 CAPTURISTA';
@@ -272,7 +280,7 @@ async function checkSession(){
       document.getElementById('btnNuevaArea').classList.add('hidden');
       document.getElementById('btnGestion').classList.add('hidden');
       document.getElementById('btnUsuarios').classList.add('hidden');
-      document.getElementById('btnAvance').classList.add('hidden'); // <--- Y ESTA
+      document.getElementById('btnAvance').classList.add('hidden');
       aviso.innerText='🔒 Modo CAPTURISTA';
       aviso.className='mt-6 p-3 rounded-xl text-xs font-bold text-center bg-blue-50 text-blue-700 border block';
     }
@@ -412,7 +420,7 @@ async function borrarArea(id){
   cargarAreas(); 
 }
 
-//Correccion en la captura - PUNTO 7 CERRADO
+//Correccion en la captura - v2.2.1 FIX MULTI-USUARIO
 async function guardarCapturaActualizada(){
   const anio = parseInt(document.getElementById('capAnio').value);
   const activos = parseInt(document.getElementById('capActivos').value);
@@ -425,11 +433,10 @@ async function guardarCapturaActualizada(){
   if(activos < 0 || faltantes < 0 || vehiculos < 0 || anio < 2000){
     return alert('❌ Revisa los números');
   }
+  if(!areaSeleccionadaCaptura) return alert('❌ Selecciona un área primero');
 
   const { data: { user } } = await supa.auth.getUser();
   const usuario = emailAUsuario(user.email);
-
-  // Guardamos el ANTES para el histórico
   const antes = {...areaSeleccionadaCaptura};
 
   const datos = {
@@ -442,23 +449,25 @@ async function guardarCapturaActualizada(){
     actualizado_en: new Date().toISOString()
   };
 
-  const { error } = await supa.from('areas').update(datos).eq('id', areaSeleccionadaCaptura.id);
+  const { data, error } = await supa.from('areas').update(datos).eq('id', areaSeleccionadaCaptura.id).select();
   
   if(error){
-    alert(error.message);
-  } else { 
-    // AQUÍ SE GUARDA EL HISTÓRICO
-    await supa.from('historial').insert([{
-      area_id: areaSeleccionadaCaptura.id,
-      accion: 'CAPTURA',
-      usuario: usuario,
-      detalle: { antes: antes, despues: datos }
-    }]);
+    alert("❌ Error al guardar: " + error.message);
+    console.error(error);
+    return;
+  } 
 
-    alert(`✅ Actualizado por ${usuario}`); 
-    cerrarModalCaptura(); 
-    cargarAreas(); 
-  }
+  // AQUÍ SE GUARDA EL HISTÓRICO
+  await supa.from('historial').insert([{
+    area_id: areaSeleccionadaCaptura.id,
+    accion: 'CAPTURA',
+    usuario: usuario,
+    detalle: { antes: antes, despues: datos }
+  }]);
+
+  alert(`✅ Actualizado por ${usuario}`); 
+  cerrarModalCaptura(); 
+  cargarAreas();
 }
 
 // RESPALDO SEMANAL SOLO ADMIN - VIERNES 5PM - PUNTO 10 CERRADO
