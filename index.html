@@ -299,6 +299,10 @@ function seleccionarAreaDeLista(id){
   mostrarResumen();
 }
 async function cargarAreas(){
+  const filtroCapturaGuardado = document.getElementById('buscadorCaptura')?.value || "";
+  const filtroPrincipalGuardado = document.getElementById('buscadorSelect')?.value || "";
+  const capturaIdGuardado = localStorage.getItem('mh_captura_id_v2');
+
   const { data }=await supa.from('areas').select('*').order('id');
   document.getElementById('status').innerHTML=`✅ ${data.length} áreas`;
   document.getElementById('contadorAreas').innerText = `${data.length} áreas`;
@@ -308,9 +312,28 @@ async function cargarAreas(){
   const guardada = localStorage.getItem("mh_area_id_v2");
   if(guardada && data.some(a=>String(a.id)===String(guardada))){ select.value = guardada; }
   if(data.length){ mostrarResumen(); renderDropdown(data); }
-  // dentro de cargarAreas()
   cargarTablaGestion(data); cargarTablaCaptura(data);
-  respaldoNube(); // <-- admin
+  respaldoNube();
+
+  if(filtroCapturaGuardado){
+    document.getElementById('buscadorCaptura').value = filtroCapturaGuardado;
+    filtrarCaptura();
+  }
+  if(filtroPrincipalGuardado){
+    document.getElementById('buscadorSelect').value = filtroPrincipalGuardado;
+    const q = filtroPrincipalGuardado.toLowerCase().trim();
+    const filtradas = q? todasLasAreas.filter(a=> String(a.id).toLowerCase().includes(q) || String(a.nombre).toLowerCase().includes(q)) : todasLasAreas;
+    renderDropdown(filtradas);
+    document.getElementById('dropdownCustom').classList.add('hidden');
+    document.getElementById('contadorAreas').innerText = `${filtradas.length} de ${todasLasAreas.length} áreas`;
+  }
+  if(capturaIdGuardado){
+    const existe = data.find(a=>String(a.id)===String(capturaIdGuardado));
+    if(existe){
+      areaSeleccionadaCaptura = existe;
+      setTimeout(()=>{ seleccionarAreaCaptura(capturaIdGuardado); },100);
+    }
+  }
 }
 
 function filtrarSelectPrincipal(){
@@ -346,8 +369,12 @@ function cargarTablaCaptura(data){
     </tr>`).join('');
 }
 function filtrarGestion(){ const q=document.getElementById('buscadorGestion').value.toLowerCase(); cargarTablaGestion(todasLasAreas.filter(a=>String(a.id).toLowerCase().includes(q)||String(a.nombre).toLowerCase().includes(q))); }
-function filtrarCaptura(){ const q=document.getElementById('buscadorCaptura').value.toLowerCase(); cargarTablaCaptura(todasLasAreas.filter(a=>String(a.id).toLowerCase().includes(q)||String(a.nombre).toLowerCase().includes(q))); }
+function filtrarCaptura(){ 
+  const q=document.getElementById('buscadorCaptura').value.toLowerCase(); 
+  cargarTablaCaptura(todasLasAreas.filter(a=>String(a.id).toLowerCase().includes(q)||String(a.nombre).toLowerCase().includes(q))); 
+}
 function seleccionarAreaCaptura(id){
+  localStorage.setItem('mh_captura_id_v2', String(id));
   let area=todasLasAreas.find(a=>String(a.id)===String(id));
   areaSeleccionadaCaptura=area;
   let infoExtra = area.actualizado_por ? `<div class="text-[11px] text-slate-500 mt-2 text-center">Última actualización: <b>${area.actualizado_por}</b> - ${new Date(area.actualizado_en).toLocaleString()}</div>` : '';
@@ -358,6 +385,8 @@ function seleccionarAreaCaptura(id){
   document.getElementById('capFaltantes').value=area.bienes_faltantes??0;
   document.getElementById('capVehiculos').value=area.vehiculos??0;
   document.getElementById('capturaNota').value=area.observacion||'';
+  // para que se pinte de verde al regresar
+  filtrarCaptura();
 }
 async function guardarNuevaArea(){ const id=document.getElementById('nuevaClave').value.trim(), nombre=document.getElementById('nuevoNombre').value.trim().toUpperCase(), direccion=document.getElementById('nuevaDireccion').value.trim().toUpperCase(); const { error }=await supa.from('areas').insert([{id,nombre,direccion}]); if(error) alert(error.message); else { cerrarModalArea(); cargarAreas(); } }
 async function guardarEdicionArea(idOriginal){ const nuevoId=document.getElementById(`edit_id_${idOriginal}`).value.trim(), nuevoNombre=document.getElementById(`edit_nom_${idOriginal}`).value.trim().toUpperCase(); const { error }=await supa.from('areas').update({id:nuevoId,nombre:nuevoNombre}).eq('id',idOriginal); if(error) alert(error.message); else cargarAreas(); }
