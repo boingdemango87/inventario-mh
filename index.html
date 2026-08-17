@@ -59,7 +59,7 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
       <button onclick="login()" class="btn-v3">Entrar →</button>
       <p id="loginError" style="color:#f87171; font-size:13px; text-align:center; margin-top:12px; display:none"></p>
       <div style="text-align:center; margin-top:16px; color:#5a5f78; font-size:12px">Usa tu usuario asignado<br>Ej: <b style="color:#8b91a7">juan.perez</b></div>
-      <div style="text-align:center; margin-top:22px; color:#5a5f78; font-size:11px">v2.2.1 • MULTI-USUARIO FIX • 2026</div>
+      <div style="text-align:center; margin-top:22px; color:#5a5f78; font-size:11px">v2.2.2 • BORRADOR + MULTI-USUARIO • 2026</div>
     </div>
   </div>
 </div>
@@ -244,9 +244,8 @@ let realtimeChannel = null;
 function suscribirRealtime() {
   if (realtimeChannel) { supa.removeChannel(realtimeChannel); realtimeChannel = null; }
   realtimeChannel = supa.channel('inventario-mh-' + Date.now()).on('postgres_changes', { event: '*', schema: 'public', table: 'areas' }, () => {
-    const modalCapturaAbierto = document.getElementById('modalCaptura') &&!document.getElementById('modalCaptura').classList.contains('hidden');
+    const modalCapturaAbierto = document.getElementById('modalCaptura') && !document.getElementById('modalCaptura').classList.contains('hidden');
     if(modalCapturaAbierto){
-      // Si alguien está capturando, solo actualiza datos en silencio para no borrarle el formulario
       supa.from('areas').select('*').order('id').then(({data})=>{ if(data) todasLasAreas=data; });
     } else {
       cargarAreas();
@@ -254,7 +253,14 @@ function suscribirRealtime() {
   }).subscribe();
 }
 suscribirRealtime();
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { suscribirRealtime(); cargarAreas(); } });
+document.addEventListener('visibilitychange', () => { 
+  if (document.visibilityState === 'visible') { 
+    suscribirRealtime(); 
+    const modalAbierto = document.getElementById('modalCaptura') && !document.getElementById('modalCaptura').classList.contains('hidden');
+    if(!modalAbierto) cargarAreas(); 
+  } 
+}
+);
 
 let todasLasAreas=[], areaSeleccionadaCaptura=null, miRol='capturista';
 
@@ -409,17 +415,11 @@ function seleccionarAreaCaptura(id){
   document.getElementById('capFaltantes').value=area.bienes_faltantes??0;
   document.getElementById('capVehiculos').value=area.vehiculos??0;
   document.getElementById('capturaNota').value=area.observacion||'';
-  // para que se pinte de verde al regresar
+  
+  restaurarBorrador(id); // restaura si había borrador
+
   filtrarCaptura();
 }
-async function guardarNuevaArea(){ const id=document.getElementById('nuevaClave').value.trim(), nombre=document.getElementById('nuevoNombre').value.trim().toUpperCase(), direccion=document.getElementById('nuevaDireccion').value.trim().toUpperCase(); const { error }=await supa.from('areas').insert([{id,nombre,direccion}]); if(error) alert(error.message); else { cerrarModalArea(); cargarAreas(); } }
-async function guardarEdicionArea(idOriginal){ const nuevoId=document.getElementById(`edit_id_${idOriginal}`).value.trim(), nuevoNombre=document.getElementById(`edit_nom_${idOriginal}`).value.trim().toUpperCase(); const { error }=await supa.from('areas').update({id:nuevoId,nombre:nuevoNombre}).eq('id',idOriginal); if(error) alert(error.message); else cargarAreas(); }
-async function borrarArea(id){ 
-  if(!confirm('¿Borrar?')) return; 
-  await supa.from('areas').delete().eq('id',id); 
-  cargarAreas(); 
-}
-
 //Correccion en la captura - v2.2.1 FIX MULTI-USUARIO
 async function guardarCapturaActualizada(){
   const anio = parseInt(document.getElementById('capAnio').value);
@@ -465,35 +465,13 @@ async function guardarCapturaActualizada(){
     detalle: { antes: antes, despues: datos }
   }]);
 
+  localStorage.removeItem('mh_borrador_'+areaSeleccionadaCaptura.id); // BORRA BORRADOR AL GUARDAR BIEN
+
   alert(`✅ Actualizado por ${usuario}`); 
   cerrarModalCaptura(); 
   cargarAreas();
 }
 
-// RESPALDO SEMANAL SOLO ADMIN - VIERNES 5PM - PUNTO 10 CERRADO
-async function respaldoNube(){
-  if(miRol !== 'admin') return;
-  
-  const hoy = new Date();
-  // 5 = viernes, 17 = 5pm
-  if(hoy.getDay() !== 5 || hoy.getHours() < 17) return; 
-
-  const key = 'respaldo_'+hoy.toISOString().slice(0,10);
-  if(localStorage.getItem(key)) return; // ya se hizo hoy
-
-  const { data } = await supa.from('areas').select('*');
-  const csv = data.map(a=>`${a.id},${a.nombre},${a.bienes_activos},${a.bienes_faltantes},${a.vehiculos}`).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
-  
-  const nombre = `MH_${hoy.toISOString().slice(0,10)}_17hrs.csv`;
-  const { error } = await supa.storage.from('respaldos').upload(nombre, blob);
-  
-  if(!error){
-    localStorage.setItem(key, '1');
-    console.log('☁️ Respaldo 5pm subido: ' + nombre);
- 
-  }
-}
 // Funcion para reportes 
 let chartInstance = null;
 let areasFiltradasReporte = [];
