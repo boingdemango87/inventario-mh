@@ -123,7 +123,31 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 
 <div id="modalGestion" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"><div class="bg-white rounded-2xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden"><div class="p-5 border-b flex justify-between items-center"><h2 class="font-bold">⚙️ Gestionar Áreas</h2><button onclick="cerrarModalGestion()" class="bg-slate-100 px-3 py-1 rounded-full">X</button></div><div class="p-4"><input id="buscadorGestion" oninput="filtrarGestion()" placeholder="🔍 Buscar área..." class="w-full bg-slate-50 border rounded-xl px-4 py-3"></div><div class="overflow-auto flex-1 px-4 pb-4"><table class="w-full"><thead class="bg-slate-900 text-white"><tr><th class="p-3 text-left rounded-tl-xl">ID</th><th class="p-3 text-left">Nombre</th><th class="p-3 rounded-tr-xl text-center">Acción</th></tr></thead><tbody id="tablaGestion"></tbody></table></div></div></div>
 
-<div id="modalCaptura" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"><div class="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden"><div class="p-5 bg-emerald-600 text-white flex justify-between items-center"><h2 class="font-bold">📸 Captura de Inventario</h2><button onclick="cerrarModalCaptura()" class="bg-white/20 px-3 py-1 rounded-full">X</button></div><div class="p-4 bg-slate-50 border-b"><input id="buscadorCaptura" oninput="filtrarCaptura()" placeholder="🔍 Filtrar área..." class="w-full border-2 border-emerald-500 rounded-xl px-4 py-3"></div><div class="overflow-auto max-h-64 px-4"><table class="w-full"><tbody id="tablaCaptura"></tbody></table></div><div id="panelResultados" class="hidden p-6 bg-slate-50 border-t"><h3 id="tituloAreaSeleccionada" class="font-bold text-emerald-700 text-center mb-4"></h3><div class="grid grid-cols-2 gap-3"><div><label class="text-xs font-bold text-slate-500">AÑO</label><input id="capAnio" type="number" class="w-full border rounded-xl px-3 py-2.5 mt-1"></div><div><label class="text-xs font-bold text-slate-500">VEHÍCULOS</label><input id="capVehiculos" type="number" class="w-full border rounded-xl px-3 py-2.5 mt-1"></div><div><label class="text-xs font-bold text-emerald-700">ACTIVOS</label><input id="capActivos" type="number" class="w-full border-2 border-emerald-200 rounded-xl px-3 py-2.5 mt-1"></div><div><label class="text-xs font-bold text-red-600">FALTANTES</label><input id="capFaltantes" type="number" class="w-full border-2 border-red-200 rounded-xl px-3 py-2.5 mt-1"></div></div><div class="mt-4"><label class="text-xs font-bold text-slate-500">OBSERVACIÓN</label><textarea id="capturaNota" class="w-full border rounded-xl px-3 py-2 h-20 mt-1"></textarea></div><button onclick="guardarCapturaActualizada()" class="w-full mt-5 bg-emerald-600 text-white font-bold py-3.5 rounded-xl">💾 Actualizar Inventario</button></div></div></div>
+<div id="modalCaptura" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div class="p-5 bg-emerald-600 text-white flex justify-between items-center">
+      <h2 class="font-bold">📸 Captura de Inventario</h2>
+      <button onclick="cerrarModalCaptura()" class="bg-white/20 px-3 py-1 rounded-full">X</button>
+    </div>
+    <div class="p-4 bg-slate-50 border-b">
+      <input id="buscadorCaptura" oninput="filtrarCaptura()" placeholder="🔍 Filtrar área..." class="w-full border-2 border-emerald-500 rounded-xl px-4 py-3">
+    </div>
+    <div class="overflow-auto max-h-[320px] px-2 bg-slate-100 border-y-2">
+      <table class="w-full"><tbody id="tablaCaptura"></tbody></table>
+    </div>
+    <div id="panelResultados" class="hidden p-6 bg-slate-50 border-t overflow-auto">
+      <h3 id="tituloAreaSeleccionada" class="font-bold text-emerald-700 text-center mb-4"></h3>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs font-bold text-slate-500">AÑO</label><input id="capAnio" type="number" class="w-full border rounded-xl px-3 py-2.5 mt-1"></div>
+        <div><label class="text-xs font-bold text-slate-500">VEHÍCULOS</label><input id="capVehiculos" type="number" class="w-full border rounded-xl px-3 py-2.5 mt-1"></div>
+        <div><label class="text-xs font-bold text-emerald-700">ACTIVOS</label><input id="capActivos" type="number" class="w-full border-2 border-emerald-200 rounded-xl px-3 py-2.5 mt-1"></div>
+        <div><label class="text-xs font-bold text-red-600">FALTANTES</label><input id="capFaltantes" type="number" class="w-full border-2 border-red-200 rounded-xl px-3 py-2.5 mt-1"></div>
+      </div>
+      <div class="mt-4"><label class="text-xs font-bold text-slate-500">OBSERVACIÓN</label><textarea id="capturaNota" class="w-full border rounded-xl px-3 py-2 h-20 mt-1"></textarea></div>
+      <button onclick="guardarCapturaActualizada()" class="w-full mt-5 bg-emerald-600 text-white font-bold py-3.5 rounded-xl">💾 Actualizar Inventario</button>
+    </div>
+  </div>
+</div>
 
 <!-- Se añade reportes areas - OPTIMIZADO -->
 <div id="modalReportes" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
@@ -312,7 +336,15 @@ function abrirModalGestion(){ if(miRol!=='admin') return alert('Solo admin'); do
 function cerrarModalGestion(){ document.getElementById('modalGestion').classList.add('hidden'); document.getElementById('modalGestion').classList.remove('flex'); }
 function abrirModalCaptura(){ document.getElementById('modalCaptura').classList.remove('hidden'); document.getElementById('modalCaptura').classList.add('flex'); document.getElementById('panelResultados').classList.add('hidden'); } function cerrarModalCaptura(){ document.getElementById('modalCaptura').classList.add('hidden'); document.getElementById('modalCaptura').classList.remove('flex'); }
 function cargarTablaGestion(data){ document.getElementById('tablaGestion').innerHTML=data.map(a=>`<tr class="border-b"><td class="p-2"><input id="edit_id_${a.id}" value="${a.id}" class="border rounded-lg px-2 py-1 w-20"></td><td class="p-2"><input id="edit_nom_${a.id}" value="${a.nombre}" class="border rounded-lg px-2 py-1 w-full"></td><td class="p-2 flex gap-1"><button onclick="guardarEdicionArea('${a.id}')" class="bg-emerald-500 text-white px-3 py-1 rounded-lg">💾</button><button onclick="borrarArea('${a.id}')" class="bg-red-500 text-white px-3 py-1 rounded-lg">🗑️</button></td></tr>`).join(''); }
-function cargarTablaCaptura(data){ document.getElementById('tablaCaptura').innerHTML=data.map(a=>`<tr class="border-b hover:bg-emerald-50 cursor-pointer" onclick="seleccionarAreaCaptura('${a.id}')"><td class="p-3 font-bold">${a.id}</td><td class="p-3">${a.nombre}</td><td class="p-3 text-sm text-slate-500">${a.direccion||''}</td></tr>`).join(''); }
+function cargarTablaCaptura(data){
+  document.getElementById('tablaCaptura').innerHTML=data.map(a=>`
+    <tr class="border-b-2 hover:bg-emerald-100 cursor-pointer transition ${areaSeleccionadaCaptura && String(areaSeleccionadaCaptura.id)===String(a.id)? 'bg-emerald-600 text-white' : 'bg-white'}"
+        onclick="seleccionarAreaCaptura('${a.id}')">
+      <td class="p-3.5 font-black text-[13px]">${a.id}</td>
+      <td class="p-3.5 font-bold text-[13px]">${a.nombre}</td>
+      <td class="p-3.5 text-[11px] opacity-70 hidden md:table-cell">${a.direccion||''}</td>
+    </tr>`).join('');
+}
 function filtrarGestion(){ const q=document.getElementById('buscadorGestion').value.toLowerCase(); cargarTablaGestion(todasLasAreas.filter(a=>String(a.id).toLowerCase().includes(q)||String(a.nombre).toLowerCase().includes(q))); }
 function filtrarCaptura(){ const q=document.getElementById('buscadorCaptura').value.toLowerCase(); cargarTablaCaptura(todasLasAreas.filter(a=>String(a.id).toLowerCase().includes(q)||String(a.nombre).toLowerCase().includes(q))); }
 function seleccionarAreaCaptura(id){
