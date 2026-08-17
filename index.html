@@ -603,10 +603,23 @@ function cerrarHistorial(){
   document.getElementById('modalHistorial').classList.remove('flex');
 }
 </script>
-
 <div id="modalAvance" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-  ... tu modal ...
+  <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
+    <div class="p-5 bg-indigo-600 text-white flex justify-between items-center">
+      <h2 class="font-bold">🚀 Avance Global - Solo Admin</h2>
+      <button onclick="cerrarModalAvance()" class="bg-white/20 w-8 h-8 rounded-full">X</button>
+    </div>
+    <div class="p-6 space-y-4 overflow-auto">
+      <div class="grid grid-cols-3 gap-3 text-center">
+        <div class="bg-slate-50 p-4 rounded-xl border"><p class="text-[10px]">TOTAL</p><p id="avTotal" class="text-2xl font-bold">0</p></div>
+        <div class="bg-emerald-50 p-4 rounded-xl border"><p class="text-[10px] text-emerald-600">CAPTURADAS</p><p id="avCapturadas" class="text-2xl font-bold text-emerald-700">0</p></div>
+        <div class="bg-red-50 p-4 rounded-xl border"><p class="text-[10px] text-red-600">PENDIENTES</p><p id="avPendientes" class="text-2xl font-bold text-red-700">0</p></div>
+      </div>
+      <div class="bg-slate-100 rounded-full h-4 overflow-hidden"><div id="avBarra" class="bg-emerald-500 h-4" style="width:0%"></div></div>
+      <p id="avPorcentaje" class="text-center font-bold text-sm">0% completado</p>
+      <div id="avLista" class="max-h-[300px] overflow-auto border rounded-xl"></div>
+    </div>
+  </div>
 </div>
-
 </body>
 </html>
