@@ -611,23 +611,46 @@ function exportarExcel(){
   let url = URL.createObjectURL(blob);
   let a = document.createElement('a'); a.href=url; a.download=`Reporte_${dirSel.replace(/[^a-z0-9]/gi,'_')}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
 }
+
 function exportarPDF(){
   let dirSel = document.getElementById('filtroDireccion').value;
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-  doc.setFontSize(12); doc.text(`Reporte por Direccion: ${dirSel} - Alcaldia MH`, 14, 15);
+  
+  doc.setFontSize(12); 
+  doc.text(`Reporte por Direccion: ${dirSel} - Alcaldia MH`, 14, 15);
   doc.setFontSize(9); 
-let totalVeh = areasFiltradasReporte.reduce((s,a)=> s + (a.vehiculos||0),0);
-let totalAct = areasFiltradasReporte.reduce((s,a)=> s + (a.bienes_activos||0),0);
-let totalFal = areasFiltradasReporte.reduce((s,a)=> s + (a.bienes_faltantes||0),0);
-doc.text(`Fecha: ${new Date().toLocaleString()} - Areas: ${areasFiltradasReporte.length} | Act: ${totalAct} | Falt: ${totalFal} | Veh: ${totalVeh}`, 14, 22);
+  let totalVeh = areasFiltradasReporte.reduce((s,a)=> s + (a.vehiculos||0),0);
+  let totalAct = areasFiltradasReporte.reduce((s,a)=> s + (a.bienes_activos||0),0);
+  let totalFal = areasFiltradasReporte.reduce((s,a)=> s + (a.bienes_faltantes||0),0);
+  doc.text(`Fecha: ${new Date().toLocaleString()} - Areas: ${areasFiltradasReporte.length} | Act: ${totalAct} | Falt: ${totalFal} | Veh: ${totalVeh}`, 14, 22);
+  
   const canvas = document.getElementById('chartPastel');
   const imgData = canvas.toDataURL('image/png');
   doc.addImage(imgData, 'PNG', 50, 28, 90, 60);
-  const rows = areasFiltradasReporte.map(a=> [a.id, a.nombre.substring(0,40), a.bienes_activos||0, a.bienes_faltantes||0, a.vehiculos||0]);
-  doc.autoTable({ startY: 95, head: [['ID','Area','Activos','Faltantes','Vehiculos']], body: rows, styles:{fontSize:7}, headStyles:{fillColor:[15,23,42]} });
-  doc.save(`Reporte_${dirSel.replace(/[^a-z0-9]/gi,'_')}.pdf`);
+  
+  const rows = areasFiltradasReporte.map(a=> [
+    a.id, 
+    a.nombre.substring(0,40), 
+    a.anio || 2026, 
+    ["", "Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][a.mes] || 'Agosto',
+    a.bienes_activos||0,  
+    a.bienes_faltantes||0, 
+    a.vehiculos||0
+  ]);
+
+  doc.autoTable({ 
+    startY: 95, 
+    head: [['ID','Area','Año','Mes','Activos','Faltantes','Vehiculos']], 
+    body: rows, 
+    styles:{fontSize:7}, 
+    headStyles:{fillColor:[15,23,42]} 
+  });
+  
+  doc.save(`Reporte_${dirSel.replace(/[^a-z0-9]/gi,'_')}_${Date.now()}.pdf`);
 }
+
+
 window.addEventListener('click', (e)=>{
   const dropdown = document.getElementById('dropdownCustom');
   const btn = document.getElementById('btnSelectArea');
