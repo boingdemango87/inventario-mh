@@ -58,12 +58,17 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
       <div class="input-group"><i class="fa-solid fa-lock icon-left" style="font-size:14px"></i><input id="passLogin" type="password" placeholder="Contraseña" class="input-v3"><i id="toggleEye" class="fa-regular fa-eye-slash icon-right" onclick="togglePass()"></i></div>
       <button onclick="login()" class="btn-v3">Entrar →</button>
       <p id="loginError" style="color:#f87171; font-size:13px; text-align:center; margin-top:12px; display:none"></p>
+      
+      <div style="margin-top:16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.18); border-radius:10px; padding:10px 12px; text-align:center">
+        <p style="color:#fca5a5; font-size:10px; line-height:1.35; margin:0">⚠️ <b>USO CONFIDENCIAL </b><br>Este sistema es de uso exclusivo del personal autorizado. La captura, reproducción o presentación no autorizada será registrada en bitácora.</p>
+      </div>
+
       <div style="text-align:center; margin-top:16px; color:#5a5f78; font-size:12px">Usa tu usuario asignado<br>Ej: <b style="color:#8b91a7">juan.perez</b></div>
-      <div style="text-align:center; margin-top:22px; color:#5a5f78; font-size:11px">v2.2.4 • VEHICULOS + REPORTES • 2026</div>
+      <div style="text-align:center; margin-top:12px; color:#5a5f78; font-size:11px">v2.3 • MES + VEHICULOS • 2026</div>
     </div>
   </div>
 </div>
- 
+
 <div id="app" class="hidden">
 <header class="bg-white border-b-4 border-amber-500 shadow-sm"><div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white"><i class="fa-solid fa-building-columns"></i></div><div><h1 class="font-bold text-slate-800 leading-none">CONTROL DE INVENTARIO</h1><p class="text-xs text-slate-500">Alcaldía MH</p></div></div><div class="flex items-center gap-3"><div id="status" class="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full text-sm font-semibold border">0 áreas</div><div class="text-right hidden md:block"><p id="userEmail" class="text-xs font-bold text-slate-700"></p><p id="userRoleBadge" class="text-[10px] px-2 py-0.5 rounded-full font-bold"></p></div><button id="btnUsuarios" onclick="abrirModalUsuarios()" class="w-9 h-9 bg-slate-100 rounded-full"><i class="fa-solid fa-users text-sm"></i></button><button onclick="logout()" class="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-sm font-bold border border-red-200">Salir</button></div></div></header>
 <div class="max-w-7xl mx-auto px-6 py-6 grid grid-cols-12 gap-6">
@@ -124,6 +129,7 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
 
 <div id="modalGestion" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"><div class="bg-white rounded-2xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden"><div class="p-5 border-b flex justify-between items-center"><h2 class="font-bold">⚙️ Gestionar Áreas</h2><button onclick="cerrarModalGestion()" class="bg-slate-100 px-3 py-1 rounded-full">X</button></div><div class="p-4"><input id="buscadorGestion" oninput="filtrarGestion()" placeholder="🔍 Buscar área..." class="w-full bg-slate-50 border rounded-xl px-4 py-3"></div><div class="overflow-auto flex-1 px-4 pb-4"><table class="w-full"><thead class="bg-slate-900 text-white"><tr><th class="p-3 text-left rounded-tl-xl">ID</th><th class="p-3 text-left">Nombre</th><th class="p-3 rounded-tr-xl text-center">Acción</th></tr></thead><tbody id="tablaGestion"></tbody></table></div></div></div>
 
+<!-- Se añade mes y se optimiza el panel de captura -->
 <div id="modalCaptura" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
     <div class="p-5 bg-emerald-600 text-white flex justify-between items-center">
@@ -138,8 +144,16 @@ body{margin:0; background:#f1f5f9; font-family:'Inter',Arial; min-height:100vh; 
     </div>
     <div id="panelResultados" class="hidden p-6 bg-slate-50 border-t overflow-auto">
       <h3 id="tituloAreaSeleccionada" class="font-bold text-emerald-700 text-center mb-4"></h3>
-      <div class="space-y-3">
-        <div><label class="text-xs font-bold text-slate-500">AÑO</label><input id="capAnio" type="number" class="w-full border rounded-xl px-3 py-2.5 mt-1"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs font-bold text-slate-500">AÑO</label><input id="capAnio" type="number" class="w-full border rounded-xl px-3 py-2.5 mt-1" value="2026"></div>
+        <div>
+          <label class="text-xs font-bold text-slate-500">MES</label>
+          <select id="capMes" class="w-full border rounded-xl px-3 py-2.5 mt-1 bg-white">
+            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8" selected>Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+          </select>
+        </div>
+      </div>
+      <div class="space-y-3 mt-3">
         <div><label class="text-xs font-bold text-emerald-700">ACTIVOS</label><input id="capActivos" type="number" class="w-full border-2 border-emerald-200 rounded-xl px-3 py-2.5 mt-1"></div>
         <div><label class="text-xs font-bold text-red-600">FALTANTES</label><input id="capFaltantes" type="number" class="w-full border-2 border-red-200 rounded-xl px-3 py-2.5 mt-1"></div>
         <div><label class="text-xs font-bold text-slate-500">VEHÍCULOS</label><input id="capVehiculos" type="number" class="w-full border rounded-xl px-3 py-2.5 mt-1"></div>
@@ -385,13 +399,16 @@ function filtrarSelectPrincipal(){
   document.getElementById('dropdownCustom').classList.remove('hidden');
   document.getElementById('contadorAreas').innerText = `${filtradas.length} de ${todasLasAreas.length} áreas`;
 }
+
 function mostrarResumen(){
   const selectVal = document.getElementById('selectArea')?.value;
   if(selectVal){ localStorage.setItem("mh_area_id_v2", String(selectVal)); }
   const a=todasLasAreas.find(x=>String(x.id)===String(selectVal));
   if(!a) return;
+  const meses = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const mesTxt = a.mes ? meses[a.mes] : '-';
   document.getElementById('textoAreaSeleccionada').innerText = `${a.id} - ${a.nombre}`;
-  document.getElementById('resumenArea').innerHTML=`<div class="text-center mb-4"><p class="font-bold">${a.id} - ${a.nombre}</p><p class="text-sm text-slate-500">${a.direccion||''}</p></div><div class="grid grid-cols-4 gap-3"><div class="bg-slate-50 border rounded-xl p-4 text-center"><p class="text-xs">AÑO</p><p class="text-xl font-bold">${a.anio||'-'}</p></div><div class="bg-emerald-50 border rounded-xl p-4 text-center"><p class="text-xs text-emerald-600">ACTIVOS</p><p class="text-xl font-bold text-emerald-700">${a.bienes_activos??0}</p></div><div class="bg-red-50 border rounded-xl p-4 text-center"><p class="text-xs text-red-600">FALTANTES</p><p class="text-xl font-bold text-red-700">${a.bienes_faltantes??0}</p></div><div class="bg-blue-50 border rounded-xl p-4 text-center"><p class="text-xs">VEHÍCULOS</p><p class="text-xl font-bold">${a.vehiculos??0}</p></div></div><div class="mt-4 bg-slate-50 rounded-xl p-3 text-center text-sm italic border">${a.observacion||'SIN OBSERVACIONES'}</div><div class="mt-3 text-[11px] text-slate-500 text-center">${a.actualizado_por? `✏️ Actualizado por <b>${a.actualizado_por}</b> el ${new Date(a.actualizado_en).toLocaleString()}` : 'Sin actualización registrada'}</div>`;
+  document.getElementById('resumenArea').innerHTML=`<div class="text-center mb-4"><p class="font-bold">${a.id} - ${a.nombre}</p><p class="text-sm text-slate-500">${a.direccion||''}</p></div><div class="grid grid-cols-4 gap-3"><div class="bg-slate-50 border rounded-xl p-4 text-center"><p class="text-xs">PERIODO</p><p class="text-lg font-bold">${mesTxt} ${a.anio||'-'}</p><p class="text-[10px] text-slate-400">${a.mes||'-'}/${a.anio||'-'}</p></div><div class="bg-emerald-50 border rounded-xl p-4 text-center"><p class="text-xs text-emerald-600">ACTIVOS</p><p class="text-xl font-bold text-emerald-700">${a.bienes_activos??0}</p></div><div class="bg-red-50 border rounded-xl p-4 text-center"><p class="text-xs text-red-600">FALTANTES</p><p class="text-xl font-bold text-red-700">${a.bienes_faltantes??0}</p></div><div class="bg-blue-50 border rounded-xl p-4 text-center"><p class="text-xs">VEHÍCULOS</p><p class="text-xl font-bold">${a.vehiculos??0}</p></div></div><div class="mt-4 bg-slate-50 rounded-xl p-3 text-center text-sm italic border">${a.observacion||'SIN OBSERVACIONES'}</div><div class="mt-3 text-[11px] text-slate-500 text-center">${a.actualizado_por? `✏️ Actualizado por <b>${a.actualizado_por}</b> el ${new Date(a.actualizado_en).toLocaleString()}` : 'Sin actualización registrada'}</div>`;
 }
 
 // --- FIN FIX DESPLEGABLE ---
@@ -399,7 +416,13 @@ function abrirModalArea(){ document.getElementById('modalArea').classList.remove
 function cerrarModalArea(){ document.getElementById('modalArea').classList.add('hidden'); document.getElementById('modalArea').classList.remove('flex'); }
 function abrirModalGestion(){ if(miRol!=='admin') return alert('Solo admin'); document.getElementById('modalGestion').classList.remove('hidden'); document.getElementById('modalGestion').classList.add('flex'); }
 function cerrarModalGestion(){ document.getElementById('modalGestion').classList.add('hidden'); document.getElementById('modalGestion').classList.remove('flex'); }
-function abrirModalCaptura(){ document.getElementById('modalCaptura').classList.remove('hidden'); document.getElementById('modalCaptura').classList.add('flex'); document.getElementById('panelResultados').classList.add('hidden'); } function cerrarModalCaptura(){ document.getElementById('modalCaptura').classList.add('hidden'); document.getElementById('modalCaptura').classList.remove('flex'); }
+function filtrarGestion(){ const q=document.getElementById('buscadorGestion').value.toLowerCase(); cargarTablaGestion(todasLasAreas.filter(a=>String(a.id).toLowerCase().includes(q)||String(a.nombre).toLowerCase().includes(q))); }
+function filtrarCaptura(){ 
+  const q=document.getElementById('buscadorCaptura').value.toLowerCase(); 
+  cargarTablaCaptura(todasLasAreas.filter(a=>String(a.id).toLowerCase().includes(q)||String(a.nombre).toLowerCase().includes(q))); 
+}
+function abrirModalCaptura(){ document.getElementById('modalCaptura').classList.remove('hidden'); document.getElementById('modalCaptura').classList.add('flex'); document.getElementById('panelResultados').classList.add('hidden'); } 
+function cerrarModalCaptura(){ document.getElementById('modalCaptura').classList.add('hidden'); document.getElementById('modalCaptura').classList.remove('flex'); }
 function cargarTablaGestion(data){ document.getElementById('tablaGestion').innerHTML=data.map(a=>`<tr class="border-b"><td class="p-2"><input id="edit_id_${a.id}" value="${a.id}" class="border rounded-lg px-2 py-1 w-20"></td><td class="p-2"><input id="edit_nom_${a.id}" value="${a.nombre}" class="border rounded-lg px-2 py-1 w-full"></td><td class="p-2 flex gap-1"><button onclick="guardarEdicionArea('${a.id}')" class="bg-emerald-500 text-white px-3 py-1 rounded-lg">💾</button><button onclick="borrarArea('${a.id}')" class="bg-red-500 text-white px-3 py-1 rounded-lg">🗑️</button></td></tr>`).join(''); }
 function cargarTablaCaptura(data){
   document.getElementById('tablaCaptura').innerHTML=data.map(a=>`
@@ -410,19 +433,15 @@ function cargarTablaCaptura(data){
       <td class="p-3.5 text-[11px] opacity-70 hidden md:table-cell">${a.direccion||''}</td>
     </tr>`).join('');
 }
-function filtrarGestion(){ const q=document.getElementById('buscadorGestion').value.toLowerCase(); cargarTablaGestion(todasLasAreas.filter(a=>String(a.id).toLowerCase().includes(q)||String(a.nombre).toLowerCase().includes(q))); }
-function filtrarCaptura(){ 
-  const q=document.getElementById('buscadorCaptura').value.toLowerCase(); 
-  cargarTablaCaptura(todasLasAreas.filter(a=>String(a.id).toLowerCase().includes(q)||String(a.nombre).toLowerCase().includes(q))); 
-}
 function seleccionarAreaCaptura(id){
   localStorage.setItem('mh_captura_id_v2', String(id));
   let area=todasLasAreas.find(a=>String(a.id)===String(id));
   areaSeleccionadaCaptura=area;
-  let infoExtra = area.actualizado_por ? `<div class="text-[11px] text-slate-500 mt-2 text-center">Última actualización: <b>${area.actualizado_por}</b> - ${new Date(area.actualizado_en).toLocaleString()}</div>` : '';
+  let infoExtra = area.actualizado_por ? `<div class="text-[11px] text-slate-500 mt-2 text-center">Última actualización: <b>${area.actualizado_por}</b> - ${new Date(area.actualizado_en).toLocaleString()} ${area.mes ? `| Mes: ${area.mes}/${area.anio}` : ''}</div>` : '';
   document.getElementById('tituloAreaSeleccionada').innerHTML=`✅ ${area.id} - ${area.nombre} ${infoExtra}`;
   document.getElementById('panelResultados').classList.remove('hidden');
   document.getElementById('capAnio').value=area.anio||2026;
+  document.getElementById('capMes').value=area.mes||8; // <-- NUEVO
   document.getElementById('capActivos').value=area.bienes_activos??0;
   document.getElementById('capFaltantes').value=area.bienes_faltantes??0;
   document.getElementById('capVehiculos').value=area.vehiculos??0;
@@ -436,6 +455,7 @@ function guardarBorradorCaptura(){
   if(!areaSeleccionadaCaptura) return;
   localStorage.setItem('mh_borrador_'+areaSeleccionadaCaptura.id, JSON.stringify({
     anio: document.getElementById('capAnio').value,
+    mes: document.getElementById('capMes').value, // <-- NUEVO
     vehiculos: document.getElementById('capVehiculos').value,
     activos: document.getElementById('capActivos').value,
     faltantes: document.getElementById('capFaltantes').value,
@@ -448,14 +468,16 @@ function restaurarBorrador(id){
   try{
     const d = JSON.parse(b);
     if(d.anio) document.getElementById('capAnio').value = d.anio;
+    if(d.mes) document.getElementById('capMes').value = d.mes; // <-- NUEVO
     if(d.vehiculos) document.getElementById('capVehiculos').value = d.vehiculos;
     if(d.activos) document.getElementById('capActivos').value = d.activos;
     if(d.faltantes) document.getElementById('capFaltantes').value = d.faltantes;
     if(d.nota) document.getElementById('capturaNota').value = d.nota;
   }catch(e){}
 }
-['capAnio','capVehiculos','capActivos','capFaltantes','capturaNota'].forEach(id=>{
+['capAnio','capMes','capVehiculos','capActivos','capFaltantes','capturaNota'].forEach(id=>{
   document.getElementById(id)?.addEventListener('input', guardarBorradorCaptura);
+  document.getElementById(id)?.addEventListener('change', guardarBorradorCaptura); // para el select de mes
 });
 
 async function guardarNuevaArea(){ 
@@ -477,18 +499,19 @@ async function respaldoNube(){
   if(!error){ localStorage.setItem(key, '1'); console.log('☁️ Respaldo 5pm subido: ' + nombre); }
 }
 
-//Correccion en la captura - v2.2.1 FIX MULTI-USUARIO
+//Correccion en la captura - v2.3 MES AGREGADO
 async function guardarCapturaActualizada(){
   const anio = parseInt(document.getElementById('capAnio').value);
+  const mes = parseInt(document.getElementById('capMes').value); // <-- NUEVO
   const activos = parseInt(document.getElementById('capActivos').value);
   const faltantes = parseInt(document.getElementById('capFaltantes').value);
   const vehiculos = parseInt(document.getElementById('capVehiculos').value);
   
-  if(isNaN(anio) || isNaN(activos) || isNaN(faltantes) || isNaN(vehiculos)){
+  if(isNaN(anio) || isNaN(mes) || isNaN(activos) || isNaN(faltantes) || isNaN(vehiculos)){
     return alert('❌ Solo números, sin letras');
   }
-  if(activos < 0 || faltantes < 0 || vehiculos < 0 || anio < 2000){
-    return alert('❌ Revisa los números');
+  if(activos < 0 || faltantes < 0 || vehiculos < 0 || anio < 2000 || mes < 1 || mes > 12){
+    return alert('❌ Revisa los números (Mes debe ser 1-12)');
   }
   if(!areaSeleccionadaCaptura) return alert('❌ Selecciona un área primero');
 
@@ -498,6 +521,7 @@ async function guardarCapturaActualizada(){
 
   const datos = {
     anio: anio,
+    mes: mes, // <-- NUEVO
     bienes_activos: activos,
     bienes_faltantes: faltantes,
     vehiculos: vehiculos,
