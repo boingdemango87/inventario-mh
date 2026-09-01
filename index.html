@@ -681,6 +681,30 @@ function cerrarHistorial(){
   document.getElementById('modalHistorial').classList.add('hidden');
   document.getElementById('modalHistorial').classList.remove('flex');
 }
+// --- AUTO LOGOUT POR INACTIVIDAD v2.3 ---
+let tiempoInactividad = 60; // 1 hora
+let timerInactividad;
+
+function resetTimerInactividad(){
+  clearTimeout(timerInactividad);
+  timerInactividad = setTimeout(async ()=>{
+    alert("⏰ Sesión cerrada por inactividad (60 min)");
+    await supa.auth.signOut();
+    location.reload();
+  }, tiempoInactividad * 60 * 1000);
+}
+
+function activarControlInactividad(){
+  ['mousemove','mousedown','keydown','touchstart','scroll'].forEach(ev=>{
+    document.addEventListener(ev, resetTimerInactividad, {passive:true});
+  });
+  resetTimerInactividad();
+}
+
+supa.auth.onAuthStateChange((event, session)=>{
+  if(session){ activarControlInactividad(); }
+  else { clearTimeout(timerInactividad); }
+});
 </script>
 <div id="modalAvance" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
